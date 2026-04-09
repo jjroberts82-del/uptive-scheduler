@@ -1,0 +1,2318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kinetic Scheduler — Live Connection</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--teal:#00897B;--td:#00695C;--tl:#e0f2f1;--ts:rgba(0,137,123,.08);--bg:#f0f2f5;--sf:#fff;--sa:#f8f9fb;--bd:#e0e4ea;--bl:#eef0f4;--tx:#1a202c;--tm:#4a5568;--tmu:#718096;--tdi:#a0aec0;--red:#e53e3e;--rs:rgba(229,62,62,.08);--green:#2f855a;--gs:rgba(47,133,90,.08);--yellow:#d69e2e;--ys:rgba(214,158,46,.08);--orange:#dd6b20;--os:rgba(221,107,32,.08);--purple:#805ad5;--ps:rgba(128,90,213,.08)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tx);font-size:13px;line-height:1.5}
+.header{background:var(--sf);border-bottom:1px solid var(--bd);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+.logo{width:34px;height:34px;border-radius:6px;background:linear-gradient(135deg,var(--teal),var(--td));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap}
+.tabs{display:flex;gap:0;background:var(--sf);border-bottom:2px solid var(--bd);padding:0 24px;overflow-x:auto}
+.tab{padding:11px 16px;font-size:12px;font-weight:600;color:var(--tmu);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--tx);background:var(--sa)}.tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.content{padding:20px 24px;max-width:100%;margin:0 auto}
+.tc{display:none}.tc.active{display:block;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:16px;margin-bottom:12px}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
+thead th{padding:9px 12px;text-align:left;font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--tmu);background:var(--sa);border-bottom:1px solid var(--bd)}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--bl);vertical-align:middle}
+tbody tr:hover{background:var(--ts)}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:11.5px}
+.sh{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--tmu);margin:20px 0 10px;display:flex;align-items:center;gap:8px}
+.sh::after{content:'';flex:1;height:1px;background:var(--bd)}
+input[type=text],input[type=password]{width:100%;padding:8px 12px;border:1px solid var(--bd);border-radius:4px;font-size:13px;font-family:'IBM Plex Sans',sans-serif;background:var(--sf);color:var(--tx)}
+input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 2px var(--ts)}
+.btn{padding:8px 20px;border-radius:4px;border:none;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;font-family:'IBM Plex Sans',sans-serif}
+.btn-teal{background:var(--teal);color:#fff}.btn-teal:hover{background:var(--td)}
+.btn-outline{background:var(--sf);color:var(--teal);border:1px solid var(--teal)}.btn-outline:hover{background:var(--tl)}
+.btn-red{background:var(--red);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--bd);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.log-entry{padding:6px 10px;border-radius:4px;font-size:11px;font-family:'IBM Plex Mono',monospace;margin-bottom:4px;line-height:1.5;word-break:break-all}
+.log-ok{background:var(--gs);color:var(--green)}
+.log-err{background:var(--rs);color:var(--red)}
+.log-info{background:var(--sa);color:var(--tmu)}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{border-left-width:3px;border-left-style:solid}
+.rec-card{border-radius:6px;padding:14px;margin-bottom:8px;border:1px solid var(--bd);background:var(--sf);border-left:4px solid var(--yellow)}
+.rec-card.critical{border-left-color:var(--red)}.rec-card.high{border-left-color:var(--orange)}.rec-card.info{border-left-color:var(--teal)}
+</style>
+</head>
+<body>
+<div class="header">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="logo">K</div>
+    <div>
+      <div style="font-size:15px;font-weight:700">Epicor Kinetic — AI Scheduling Dashboard</div>
+      <div style="font-size:11px;color:var(--tmu)">Live Kinetic Connection — <span id="headerEnv" style="color:var(--teal);font-weight:600">Not Connected</span></div>
+    </div>
+  </div>
+  <div id="headerStatus" style="display:flex;gap:6px;align-items:center">
+    <span class="badge" style="background:var(--rs);color:var(--red)"><span class="status-dot" style="background:var(--red)"></span> Disconnected</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="connect">⚡ Connect to Kinetic</button>
+  <button class="tab" data-tab="jobs">◎ Live Jobs</button>
+  <button class="tab" data-tab="workflow">⊞ Job Workflow</button>
+  <button class="tab" data-tab="scheduling">◫ Scheduling</button>
+  <button class="tab" data-tab="demand">⊟ Demand & POs</button>
+  <button class="tab" data-tab="resources">⬢ Resources</button>
+  <button class="tab" data-tab="recs">✦ AI Recommendations</button>
+  <button class="tab" data-tab="actions">⟲ Actions</button>
+  <button class="tab" data-tab="log">▤ API Log</button>
+</div>
+
+<div class="content">
+
+<!-- ═══ CONNECT TAB ═══ -->
+<div class="tc active" id="tab-connect">
+  <div class="card" style="border-left:3px solid var(--teal);max-width:600px">
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px">Connect to Your Kinetic Instance</div>
+    <div style="font-size:12px;color:var(--tmu);margin-bottom:16px">Enter your connection details below. The dashboard will call the Kinetic REST API directly to pull scheduling data and push actions.</div>
+
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Server URL</label>
+      <input type="text" id="cfgServer" value="https://seiajr8af3.developer.epicor.com/server" placeholder="https://yourserver.epicor.com/server">
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Company ID</label>
+      <input type="text" id="cfgCompany" placeholder="EPIC06 or SALESUSMFG — from Company dropdown">
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Username</label>
+      <input type="text" id="cfgUser" placeholder="Josh.Roberts@epicor.com">
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Password</label>
+      <input type="password" id="cfgPass" placeholder="Your Kinetic password">
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">API Key</label>
+      <input type="text" id="cfgApiKey" placeholder="From API Key Maintenance">
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-teal" id="btnConnect" onclick="testConnection()">Test Connection</button>
+      <button class="btn btn-outline" onclick="loadAllData()" id="btnLoad">Pull All Data</button>
+      <span id="connStatus" style="font-size:12px;color:var(--tmu)"></span>
+    </div>
+  </div>
+
+  <div id="connResult"></div>
+
+  <div class="card" style="max-width:600px;margin-top:8px;background:var(--sa)">
+    <div style="font-size:12px;font-weight:600;margin-bottom:6px">How this works</div>
+    <div style="font-size:12px;color:var(--tmu);line-height:1.7">
+      The dashboard calls your Kinetic REST API through Automation Studio or directly via the REST endpoint. It reads Jobs, Resources, Shop Load, and Production Calendars, runs the AI recommendation engine client-side, and displays results. Actions (priority changes, resource reassignment, holds) push back to Kinetic through the same API.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ JOBS TAB ═══ -->
+<div class="tc" id="tab-jobs">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+    <div style="font-size:14px;font-weight:700">Live Jobs from Kinetic</div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <input type="text" id="jobFilter" placeholder="Filter by job, part, or status..." oninput="filterJobs()" style="width:220px;padding:5px 10px;font-size:12px">
+      <button class="btn btn-teal" id="btnJobScope" onclick="toggleJobScope()" style="font-size:11px;padding:5px 14px">Showing: All 2026 Jobs</button>
+      <button class="btn btn-outline" onclick="fetchJobs()" style="font-size:11px;padding:5px 14px">↻ Refresh</button>
+      <span id="jobCount" class="badge" style="background:var(--sa);color:var(--tmu);border:1px solid var(--bd)">0 jobs</span>
+    </div>
+  </div>
+  <div style="font-size:11px;color:var(--tmu);margin-bottom:10px">Click any job row to select it for actions. Use the inline buttons for quick actions.</div>
+  <div id="jobsLoading" style="display:none;text-align:center;padding:40px"><div class="spinner"></div><div style="margin-top:8px;color:var(--tmu)">Pulling jobs from Kinetic...</div></div>
+  <div id="jobsEmpty" class="card" style="text-align:center;color:var(--tmu);padding:40px;display:none">No jobs found. Connect to Kinetic first, or create jobs in Job Entry.</div>
+  <div class="card" style="padding:0;overflow-x:auto"><table><thead><tr><th>Job</th><th>Part</th><th>Qty</th><th>Due Date</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead><tbody id="jobsTable"></tbody></table></div>
+</div>
+
+<!-- ═══ JOB WORKFLOW TAB ═══ -->
+<div class="tc" id="tab-workflow">
+  <div style="display:flex;gap:16px;align-items:flex-start">
+
+    <!-- LEFT SIDEBAR -->
+    <div style="min-width:200px;max-width:220px;flex-shrink:0;position:sticky;top:70px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:12px">Job Workflow</div>
+
+      <div style="margin-bottom:12px">
+        <input type="text" id="wfFilter" placeholder="Search jobs..." oninput="activeWfFilter='';renderWorkflow()" style="width:100%;padding:6px 10px;font-size:12px">
+      </div>
+
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tmu);margin-bottom:6px">Quick Filters</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">
+        <button class="btn btn-teal" onclick="setWfFilter('')" style="font-size:11px;padding:5px 10px;text-align:left;width:100%" id="wfBtnAll">All Jobs</button>
+        <button class="btn btn-outline" onclick="setWfFilter('__critical')" style="font-size:11px;padding:5px 10px;text-align:left;width:100%">Due ≤ 7 Days</button>
+        <button class="btn btn-outline" onclick="setWfFilter('__late')" style="font-size:11px;padding:5px 10px;text-align:left;width:100%">Estimated Late</button>
+        <button class="btn btn-outline" onclick="setWfFilter('__inprogress')" style="font-size:11px;padding:5px 10px;text-align:left;width:100%">In Progress</button>
+        <button class="btn btn-outline" onclick="setWfFilter('UPT')" style="font-size:11px;padding:5px 10px;text-align:left;width:100%">Uptive Jobs</button>
+      </div>
+
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tmu);margin-bottom:6px">Op Status Legend</div>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px">
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tmu)"><span style="width:14px;height:14px;border-radius:3px;background:var(--green);display:inline-block;flex-shrink:0"></span> Complete</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tmu)"><span style="width:14px;height:14px;border-radius:3px;background:var(--teal);display:inline-block;border:2px solid var(--td);flex-shrink:0"></span> In Progress</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tmu)"><span style="width:14px;height:14px;border-radius:3px;background:var(--bd);display:inline-block;flex-shrink:0"></span> Pending</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tmu)"><span style="width:14px;height:14px;border-radius:3px;background:var(--red);display:inline-block;flex-shrink:0"></span> Over Time</span>
+      </div>
+
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tmu);margin-bottom:6px">Material Status</div>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px">
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tmu)"><span style="width:14px;height:14px;border-radius:3px;background:var(--green);display:inline-block;flex-shrink:0"></span> Issued</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tmu)"><span style="width:14px;height:14px;border-radius:3px;background:var(--teal);display:inline-block;flex-shrink:0"></span> On PO</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tmu)"><span style="width:14px;height:14px;border-radius:3px;background:var(--orange);display:inline-block;flex-shrink:0"></span> Issue from Stock</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tmu)"><span style="width:14px;height:14px;border-radius:3px;background:var(--red);display:inline-block;flex-shrink:0"></span> Needs PO</span>
+      </div>
+
+      <div style="border-top:1px solid var(--bd);padding-top:10px;margin-top:6px">
+        <span id="wfCount" style="font-size:12px;font-weight:600;color:var(--tmu)">0 jobs</span>
+        <button class="btn btn-outline" onclick="fetchWorkflow()" style="font-size:10px;padding:4px 10px;width:100%;margin-top:6px">↻ Refresh Data</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: JOB CARDS -->
+    <div style="flex:1;min-width:0">
+      <div id="wfLoading" style="display:none;text-align:center;padding:40px"><div class="spinner"></div><div style="margin-top:8px;color:var(--tmu)">Loading job operations...</div></div>
+      <div id="wfGrid"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ SCHEDULING TAB ═══ -->
+<div class="tc" id="tab-scheduling">
+  <div style="display:flex;gap:16px;align-items:flex-start">
+
+    <!-- LEFT PANEL -->
+    <div style="min-width:200px;max-width:220px;flex-shrink:0;position:sticky;top:70px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:12px">Capacity Scheduling</div>
+      <div style="font-size:11px;color:var(--tmu);margin-bottom:14px;line-height:1.6">Click a work center to drill into resources and see individual machine loads.</div>
+
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tmu);margin-bottom:6px">Capacity Legend</div>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px">
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tmu)"><span style="width:14px;height:14px;border-radius:3px;background:var(--green);display:inline-block;flex-shrink:0"></span> Under 70%</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tmu)"><span style="width:14px;height:14px;border-radius:3px;background:var(--yellow);display:inline-block;flex-shrink:0"></span> 70–90%</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tmu)"><span style="width:14px;height:14px;border-radius:3px;background:var(--orange);display:inline-block;flex-shrink:0"></span> 90–100%</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tmu)"><span style="width:14px;height:14px;border-radius:3px;background:var(--red);display:inline-block;flex-shrink:0"></span> Overloaded 100%+</span>
+      </div>
+
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tmu);margin-bottom:6px">Planning Horizon</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">
+        <button class="btn btn-teal" onclick="setSchedHorizon(5)" id="schedH5" style="font-size:11px;padding:5px 10px;text-align:left;width:100%">1 Week (5 days)</button>
+        <button class="btn btn-outline" onclick="setSchedHorizon(10)" id="schedH10" style="font-size:11px;padding:5px 10px;text-align:left;width:100%">2 Weeks (10 days)</button>
+        <button class="btn btn-outline" onclick="setSchedHorizon(20)" id="schedH20" style="font-size:11px;padding:5px 10px;text-align:left;width:100%">4 Weeks (20 days)</button>
+      </div>
+
+      <div style="border-top:1px solid var(--bd);padding-top:10px">
+        <button class="btn btn-outline" onclick="renderScheduling()" style="font-size:10px;padding:4px 10px;width:100%">↻ Refresh</button>
+        <div id="schedBackBtn" style="display:none;margin-top:6px">
+          <button class="btn btn-teal" onclick="schedBackToOverview()" style="font-size:11px;padding:5px 10px;width:100%">← Back to Overview</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: CONTENT -->
+    <div style="flex:1;min-width:0">
+      <div id="schedOverview"></div>
+      <div id="schedDetail" style="display:none"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ RESOURCES TAB ═══ -->
+<div class="tc" id="tab-demand">
+  <div style="display:flex;gap:16px;align-items:flex-start">
+    <div style="min-width:200px;max-width:220px;flex-shrink:0;position:sticky;top:70px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:12px">Demand & Purchasing</div>
+      <div style="font-size:11px;color:var(--tmu);margin-bottom:14px;line-height:1.6">AI analyzes job materials to identify purchasing needs, consolidation opportunities, and demand trends.</div>
+
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tmu);margin-bottom:6px">View</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">
+        <button class="btn btn-teal" onclick="renderDemand('po')" id="demBtnPO" style="font-size:11px;padding:5px 10px;text-align:left;width:100%">PO Suggestions</button>
+        <button class="btn btn-outline" onclick="renderDemand('consolidate')" id="demBtnCon" style="font-size:11px;padding:5px 10px;text-align:left;width:100%">Consolidation Opps</button>
+        <button class="btn btn-outline" onclick="renderDemand('demand')" id="demBtnDem" style="font-size:11px;padding:5px 10px;text-align:left;width:100%">Demand Forecast</button>
+        <button class="btn btn-outline" onclick="renderDemand('critical')" id="demBtnCrit" style="font-size:11px;padding:5px 10px;text-align:left;width:100%">Critical Shortages</button>
+      </div>
+
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tmu);margin-bottom:6px">Material Status</div>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px">
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tmu)"><span style="width:14px;height:14px;border-radius:3px;background:var(--red);display:inline-block;flex-shrink:0"></span> Needs PO</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tmu)"><span style="width:14px;height:14px;border-radius:3px;background:var(--orange);display:inline-block;flex-shrink:0"></span> Issue from Stock</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tmu)"><span style="width:14px;height:14px;border-radius:3px;background:var(--teal);display:inline-block;flex-shrink:0"></span> On PO</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tmu)"><span style="width:14px;height:14px;border-radius:3px;background:var(--green);display:inline-block;flex-shrink:0"></span> Issued</span>
+      </div>
+      <div style="border-top:1px solid var(--bd);padding-top:10px">
+        <button class="btn btn-outline" onclick="renderDemand()" style="font-size:10px;padding:4px 10px;width:100%">↻ Refresh</button>
+      </div>
+    </div>
+    <div style="flex:1;min-width:0" id="demandContent"></div>
+  </div>
+</div>
+
+<div class="tc" id="tab-resources">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div style="font-size:14px;font-weight:700">Work Center Load — Jobs by Resource</div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="btn btn-teal" id="btnResFilter" onclick="toggleResFilter()" style="font-size:11px;padding:5px 14px">Showing: Scheduled Only</button>
+      <span id="resJobCount" class="badge" style="background:var(--sa);color:var(--tmu);border:1px solid var(--bd)">0 active ops</span>
+      <button class="btn btn-outline" onclick="fetchResourceLoad()" style="font-size:11px;padding:5px 14px">↻ Refresh</button>
+    </div>
+  </div>
+  <div id="resLoading" style="display:none;text-align:center;padding:40px"><div class="spinner"></div><div style="margin-top:8px;color:var(--tmu)">Pulling resources and job operations...</div></div>
+  <div id="resGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px"></div>
+</div>
+
+<!-- ═══ AI RECOMMENDATIONS TAB ═══ -->
+<div class="tc" id="tab-recs">
+  <div class="card" style="border-left:3px solid var(--purple);margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <div style="font-size:15px;font-weight:700">AI Recommendations</div>
+      <span id="recCount" class="badge" style="background:var(--ps);color:var(--purple)">0 recommendations</span>
+    </div>
+    <div style="font-size:12px;color:var(--tmu)">Generated from your live Kinetic data. Each recommendation includes a one-click action to push changes back.</div>
+  </div>
+  <div id="recsLoading" style="display:none;text-align:center;padding:40px"><div class="spinner"></div><div style="margin-top:8px;color:var(--tmu)">Analyzing scheduling data...</div></div>
+  <div id="recsList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px"></div>
+</div>
+
+<!-- ═══ ACTIONS TAB ═══ -->
+<div class="tc" id="tab-actions">
+  <div class="card" style="border-left:3px solid var(--orange)">
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px">Push Actions to Kinetic</div>
+    <div style="font-size:12px;color:var(--tmu);margin-bottom:16px">Each action calls the Kinetic REST API to modify live data. Every call is logged in the API Log tab.</div>
+
+    <div style="margin-bottom:16px">
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Job Number</label>
+      <input type="text" id="actJob" placeholder="Enter your Job Number from Kinetic" style="max-width:300px">
+    </div>
+  </div>
+
+  <div class="sh">Scheduling Actions</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-bottom:16px">
+    <div class="card" style="border-top:3px solid var(--teal);cursor:pointer" onclick="runAction('scheduleForward')">
+      <div style="font-size:18px;margin-bottom:4px">▶</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:3px">Schedule Forward</div>
+      <div style="font-size:11px;color:var(--tmu);line-height:1.5;margin-bottom:6px">Forward schedule from the Start Date. The engine places scheduling blocks into the earliest available capacity slots moving forward.</div>
+      <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--td);background:var(--sa);padding:4px 8px;border-radius:3px">POST ScheduleEngineSvc → Direction: Start</div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--purple);cursor:pointer" onclick="runAction('scheduleBackward')">
+      <div style="font-size:18px;margin-bottom:4px">◀</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:3px">Schedule Backward</div>
+      <div style="font-size:11px;color:var(--tmu);line-height:1.5;margin-bottom:6px">Backward schedule from the Due Date. Scheduling blocks placed so the last operation finishes by the required date.</div>
+      <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--td);background:var(--sa);padding:4px 8px;border-radius:3px">POST ScheduleEngineSvc → Direction: End</div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--red);cursor:pointer" onclick="runAction('unschedule')">
+      <div style="font-size:18px;margin-bottom:4px">✕</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:3px">Remove from Schedule</div>
+      <div style="font-size:11px;color:var(--tmu);line-height:1.5;margin-bottom:6px">Clears all scheduling blocks from resources. Job stays released but unscheduled. Frees capacity immediately.</div>
+      <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--td);background:var(--sa);padding:4px 8px;border-radius:3px">PATCH JobEntry → JobScheduled: false</div>
+    </div>
+  </div>
+
+  <div class="sh">Change Priority</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:16px">
+    <div class="card" style="border-top:3px solid var(--red);cursor:pointer;padding:12px" onclick="runAction('priorityImmediate')">
+      <div style="font-size:13px;font-weight:700;color:var(--red)">Immediate</div>
+      <div style="font-size:10px;color:var(--tmu);margin-top:2px">Auto-triggers Forward Schedule</div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--orange);cursor:pointer;padding:12px" onclick="runAction('priorityVeryHigh')">
+      <div style="font-size:13px;font-weight:700;color:var(--orange)">Very High</div>
+      <div style="font-size:10px;color:var(--tmu);margin-top:2px">Top of the queue</div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--yellow);cursor:pointer;padding:12px" onclick="runAction('priorityHigh')">
+      <div style="font-size:13px;font-weight:700;color:var(--yellow)">High</div>
+      <div style="font-size:10px;color:var(--tmu);margin-top:2px">Elevated priority</div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--teal);cursor:pointer;padding:12px" onclick="runAction('priorityNormal')">
+      <div style="font-size:13px;font-weight:700;color:var(--teal)">Normal</div>
+      <div style="font-size:10px;color:var(--tmu);margin-top:2px">Standard scheduling</div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--tdi);cursor:pointer;padding:12px" onclick="runAction('priorityLow')">
+      <div style="font-size:13px;font-weight:700;color:var(--tdi)">Low</div>
+      <div style="font-size:10px;color:var(--tmu);margin-top:2px">Fill-in work</div>
+    </div>
+  </div>
+
+  <div class="sh">Job Status</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-bottom:16px">
+    <div class="card" style="border-top:3px solid var(--yellow);cursor:pointer" onclick="runAction('hold')">
+      <div style="font-size:18px;margin-bottom:4px">⏸</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:3px">Put Job on Hold</div>
+      <div style="font-size:11px;color:var(--tmu);line-height:1.5">Scheduling blocks released. Capacity freed. Materials stay allocated.</div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--green);cursor:pointer" onclick="runAction('release')">
+      <div style="font-size:18px;margin-bottom:4px">▶</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:3px">Release from Hold</div>
+      <div style="font-size:11px;color:var(--tmu);line-height:1.5">Job becomes eligible for scheduling. Run Schedule Forward or Backward after.</div>
+    </div>
+  </div>
+
+  <div id="actionResult" style="margin-top:4px"></div>
+</div>
+
+<!-- ═══ LOG TAB ═══ -->
+<div class="tc" id="tab-log">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div style="font-size:14px;font-weight:700">API Call Log</div>
+    <button class="btn btn-outline" onclick="document.getElementById('logEntries').innerHTML=''" style="font-size:11px;padding:5px 14px">Clear</button>
+  </div>
+  <div class="card" style="padding:12px;max-height:500px;overflow-y:auto"><div id="logEntries"></div></div>
+</div>
+
+</div>
+
+<!-- ═══ JOB DETAIL MODAL ═══ -->
+<div id="jobDetailOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:200;overflow-y:auto;padding:40px 20px" onclick="if(event.target===this)closeJobDetail()">
+  <div style="max-width:800px;margin:0 auto;background:var(--sf);border-radius:8px;border:1px solid var(--bd);overflow:hidden" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:var(--teal);color:#fff">
+      <div>
+        <div id="jdTitle" style="font-size:18px;font-weight:700"></div>
+        <div id="jdSubtitle" style="font-size:12px;opacity:.8"></div>
+      </div>
+      <button onclick="closeJobDetail()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;padding:0 8px">×</button>
+    </div>
+    <div id="jdContent" style="padding:20px"></div>
+  </div>
+</div>
+
+<script>
+// ═══ STATE ═══
+let CONFIG = { server:'', company:'', user:'', pass:'', apiKey:'' };
+let CONNECTED = false;
+let LIVE_JOBS = [];
+let LIVE_RESOURCES = [];
+
+// ═══ TABS ═══
+document.querySelectorAll('.tab').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tc').forEach(t=>t.classList.remove('active'));b.classList.add('active');document.getElementById('tab-'+b.dataset.tab).classList.add('active')})});
+
+// ═══ LOGGING ═══
+function log(type, method, url, detail) {
+  const el = document.getElementById('logEntries');
+  const time = new Date().toLocaleTimeString();
+  const cls = type === 'ok' ? 'log-ok' : type === 'err' ? 'log-err' : 'log-info';
+  const icon = type === 'ok' ? '✓' : type === 'err' ? '✗' : '→';
+  el.insertAdjacentHTML('afterbegin',
+    `<div class="log-entry ${cls}">${icon} ${time} — ${method} ${url}\n${detail || ''}</div>`
+  );
+}
+
+// ═══ API CALLER ═══
+async function kineticAPI(method, path, body = null) {
+  const url = `${CONFIG.server}/api/v2/odata/${CONFIG.company}/${path}`;
+  const creds = btoa(`${CONFIG.user}:${CONFIG.pass}`);
+  const headers = {
+    'Authorization': `Basic ${creds}`,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'x-api-key': CONFIG.apiKey,
+  };
+
+  log('info', method, path, body ? JSON.stringify(body).substring(0, 200) : '');
+
+  try {
+    const resp = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : null,
+    });
+
+    if (!resp.ok) {
+      const errText = await resp.text();
+      log('err', method, path, `${resp.status}: ${errText.substring(0, 300)}`);
+      throw new Error(`${resp.status}: ${errText.substring(0, 200)}`);
+    }
+
+    const data = await resp.json();
+    const count = data.value ? data.value.length : 1;
+    log('ok', method, path, `${count} record(s) returned`);
+    return data;
+  } catch (err) {
+    if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+      log('err', method, path, 'CORS blocked — use Automation Studio API endpoint instead. See log for details.');
+      throw new Error('CORS_BLOCKED');
+    }
+    throw err;
+  }
+}
+
+// ═══ CONNECTION TEST ═══
+async function testConnection() {
+  CONFIG.server = document.getElementById('cfgServer').value.replace(/\/+$/, '');
+  CONFIG.company = document.getElementById('cfgCompany').value.trim();
+  CONFIG.user = document.getElementById('cfgUser').value.trim();
+  CONFIG.pass = document.getElementById('cfgPass').value;
+  CONFIG.apiKey = document.getElementById('cfgApiKey').value.trim();
+
+  if (!CONFIG.server || !CONFIG.company) {
+    document.getElementById('connStatus').innerHTML = '<span style="color:var(--red)">Server URL and Company ID required</span>';
+    return;
+  }
+
+  document.getElementById('connStatus').innerHTML = '<div class="spinner"></div> Testing...';
+  document.getElementById('btnConnect').disabled = true;
+
+  try {
+    const data = await kineticAPI('GET', 'Erp.BO.ResourceGroupSvc/ResourceGroups?$top=1');
+    CONNECTED = true;
+    const sample = data.value?.[0]?.ResourceGrpID || 'none';
+
+    document.getElementById('connStatus').innerHTML = '<span style="color:var(--green)">✓ Connected! Found resource: ' + sample + '</span>';
+    document.getElementById('headerStatus').innerHTML = '<span class="badge" style="background:var(--gs);color:var(--green)"><span class="status-dot" style="background:var(--green)"></span> Connected</span>';
+    document.getElementById('headerEnv').textContent = CONFIG.server.replace('https://','').split('.')[0] + ' / ' + CONFIG.company;
+
+    document.getElementById('connResult').innerHTML =
+      '<div class="card" style="border-left:3px solid var(--green);max-width:600px;margin-top:8px">' +
+      '<div style="font-size:13px;font-weight:700;color:var(--green)">✓ Connected — loading data automatically...</div></div>';
+
+    // Auto-load data after successful connection
+    setTimeout(() => loadAllData(), 500);
+  } catch (err) {
+    CONNECTED = false;
+    if (err.message === 'CORS_BLOCKED') {
+      document.getElementById('connStatus').innerHTML = '';
+      document.getElementById('connResult').innerHTML =
+        '<div class="card" style="border-left:3px solid var(--orange);max-width:600px;margin-top:8px">' +
+        '<div style="font-size:13px;font-weight:700;color:var(--orange)">⚠ CORS Restriction Detected</div>' +
+        '<div style="font-size:12px;color:var(--tmu);margin-top:4px;line-height:1.7">' +
+        'The browser blocked the direct API call due to cross-origin security (CORS). This is normal — browsers prevent web pages from calling APIs on other domains.<br><br>' +
+        '<strong>Two solutions:</strong><br>' +
+        '1. <strong>Automation Studio API Endpoint</strong> (recommended) — create a recipe with "Build an API endpoint" starting point. The dashboard calls Automation Studio, which proxies to Kinetic. No CORS issues.<br>' +
+        '2. <strong>Host the dashboard on Kinetic</strong> — deploy it as an App Studio layer. Same-origin, no CORS.<br><br>' +
+        'For the Uptive demo, option 1 is fastest. I\'ll load demo data so you can show the dashboard now, and wire the live connection through Automation Studio as the next step.</div>' +
+        '<div style="margin-top:10px"><button class="btn btn-teal" onclick="loadDemoData()">Load Demo Data Instead</button></div></div>';
+    } else {
+      document.getElementById('connStatus').innerHTML = '<span style="color:var(--red)">✗ ' + err.message.substring(0, 100) + '</span>';
+    }
+  }
+  document.getElementById('btnConnect').disabled = false;
+}
+
+// ═══ FETCH JOBS ═══
+let showAllJobs = true; // Show all jobs by default
+
+async function fetchJobs() {
+  document.getElementById('jobsLoading').style.display = 'block';
+  try {
+    const filter = showAllJobs
+      ? "Erp.BO.JobEntrySvc/JobEntries?$filter=JobComplete eq false and JobClosed eq false and ReqDueDate ge 2026-01-01T00:00:00Z&$top=100&$orderby=JobNum desc"
+      : "Erp.BO.JobEntrySvc/JobEntries?$filter=JobReleased eq true and JobComplete eq false and ReqDueDate ge 2026-01-01T00:00:00Z&$top=100&$orderby=JobNum desc";
+
+    const data = await kineticAPI('GET', filter);
+    LIVE_JOBS = (data.value || []).map(j => ({
+      id: j.JobNum, part: j.PartDescription || j.PartNum || j.PartID || '', qty: j.ProdQty || j.OrderQty || 0,
+      dueDate: (j.ReqDueDate || j.DueDate || '').split('T')[0],
+      priority: j.SchedCode != null ? j.SchedCode : (j.Priority || 'Normal'),
+      status: (j.JobHeld || j.OnHold) ? 'On Hold' : j.JobReleased ? 'Released' : j.JobEngineered ? 'Engineered' : 'Open',
+      held: j.JobHeld || j.OnHold || false,
+      released: j.JobReleased || false,
+      engineered: j.JobEngineered || false,
+      raw: j
+    }));
+    if (data.value && data.value[0]) {
+      log('info', 'FIELDS', 'JobEntry', 'Available fields: ' + Object.keys(data.value[0]).join(', '));
+    }
+    renderJobs(LIVE_JOBS);
+  } catch (err) {
+    if (err.message === 'CORS_BLOCKED') return;
+  }
+  document.getElementById('jobsLoading').style.display = 'none';
+}
+
+// ═══ FETCH RESOURCES + JOB OPERATIONS ═══
+let LIVE_JOB_OPERS = [];
+
+async function fetchResources() {
+  await fetchResourceLoad();
+}
+
+async function fetchResourceLoad() {
+  document.getElementById('resLoading').style.display = 'block';
+  try {
+    // Fetch resource groups with resources
+    const resData = await kineticAPI('GET',
+      "Erp.BO.ResourceGroupSvc/ResourceGroups?$expand=Resources&$top=50"
+    );
+    LIVE_RESOURCES = resData.value || [];
+
+    // Use WF_JOBS ops if already loaded, otherwise fetch all and filter client-side
+    if (WF_JOBS.length > 0) {
+      LIVE_JOB_OPERS = [];
+      WF_JOBS.forEach(j => {
+        (j.operations || []).filter(op => !op.OpComplete).forEach(op => LIVE_JOB_OPERS.push(op));
+      });
+      log('info', 'DATA', 'Resource Ops', LIVE_JOB_OPERS.length + ' active ops (from workflow data)');
+    } else if (LIVE_JOBS.length > 0) {
+      const jobSet = new Set(LIVE_JOBS.map(j => j.id));
+      const opData = await kineticAPI('GET',
+        `Erp.BO.JobEntrySvc/JobOpers?$filter=OpComplete eq false&$top=2000`
+      );
+      LIVE_JOB_OPERS = (opData.value || []).filter(op => jobSet.has(op.JobNum));
+      log('info', 'DATA', 'Resource Ops', LIVE_JOB_OPERS.length + ' active ops (filtered client-side)');
+    } else {
+      LIVE_JOB_OPERS = [];
+    }
+
+    if (LIVE_JOB_OPERS.length > 0) {
+      log('info', 'FIELDS', 'JobOper', 'Available fields: ' + Object.keys(LIVE_JOB_OPERS[0]).join(', '));
+    }
+
+    document.getElementById('resJobCount').textContent = LIVE_JOB_OPERS.length + ' active ops';
+    renderResourceLoad(LIVE_RESOURCES, LIVE_JOB_OPERS);
+  } catch (err) {
+    if (err.message === 'CORS_BLOCKED') return;
+    log('err', 'FETCH', 'Resource load error', err.message);
+  }
+  document.getElementById('resLoading').style.display = 'none';
+}
+
+// ═══ RENDER RESOURCE LOAD VIEW ═══
+let showScheduledOnly = true; // Default: only show resources with ops
+
+function toggleResFilter() {
+  showScheduledOnly = !showScheduledOnly;
+  const btn = document.getElementById('btnResFilter');
+  btn.textContent = showScheduledOnly ? 'Showing: Scheduled Only' : 'Showing: All Resources';
+  btn.className = showScheduledOnly ? 'btn btn-teal' : 'btn btn-outline';
+  renderResourceLoad(LIVE_RESOURCES, LIVE_JOB_OPERS);
+}
+
+function renderResourceLoad(groups, opers) {
+  const grid = document.getElementById('resGrid');
+  grid.innerHTML = '';
+
+  // Build lookups
+  const opsByGroup = {};
+  opers.forEach(op => {
+    const grp = op.PrimaryResourceGrpID || op.ResourceGrpID || op.WCCode || '';
+    if (grp) { if (!opsByGroup[grp]) opsByGroup[grp] = []; opsByGroup[grp].push(op); }
+  });
+
+  const jobLookup = {};
+  LIVE_JOBS.forEach(j => { jobLookup[j.id] = j; });
+
+  let visibleCount = 0;
+
+  groups.forEach(g => {
+    const grpId = g.ResourceGrpID;
+    const isLabor = g.InputType === 'L';
+    const resources = (g.Resources || []);
+    const grpOps = opsByGroup[grpId] || [];
+
+    if (showScheduledOnly && grpOps.length === 0) return;
+    visibleCount++;
+
+    const borderColor = grpOps.length > 0
+      ? (isLabor ? 'var(--orange)' : 'var(--teal)')
+      : 'var(--bd)';
+
+    // Resources list
+    let resListHTML = resources.map(r => {
+      const dot = (r.Inactive || r.InActive) ? 'var(--red)' : 'var(--green)';
+      return `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;background:var(--sa);border:1px solid var(--bl);font-size:11px;margin:2px">
+        <span class="status-dot" style="background:${dot}"></span>
+        <span style="font-weight:600">${r.Description || r.ResourceID}</span>
+        <span class="mono" style="font-size:9px;color:var(--tdi)">${r.ResourceID}</span>
+      </span>`;
+    }).join('');
+
+    // Jobs list for this group
+    let jobsHTML = '';
+    if (grpOps.length > 0) {
+      jobsHTML = grpOps.map(op => {
+        const job = jobLookup[op.JobNum] || {};
+        const priLabel = PRI_LABELS[job.priority] || job.priority || '';
+        const priColor = PRI_COLORS[priLabel] || 'var(--sa);color:var(--tmu)';
+        const dl = job.dueDate ? Math.ceil((new Date(job.dueDate) - new Date()) / 86400000) : 99;
+        const dlColor = dl <= 3 ? 'var(--red)' : dl <= 7 ? 'var(--orange)' : dl <= 14 ? 'var(--yellow)' : 'var(--tdi)';
+        const opCode = op.OpCode || '';
+        const estHrs = (op.EstProdHours || 0).toFixed(1);
+        return `<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;border-bottom:1px solid var(--bl);font-size:11px;cursor:pointer" onclick="selectJob('${op.JobNum}')">
+          <span class="mono" style="font-weight:600;color:var(--teal);min-width:68px">${op.JobNum}</span>
+          <span style="flex:1;color:var(--tx);font-weight:500">${job.part || ''}</span>
+          <span class="mono" style="font-size:10px;color:var(--tmu)">${opCode}</span>
+          <span class="mono" style="font-size:10px;color:var(--tmu)">${estHrs}h</span>
+          <span class="badge" style="background:${priColor};font-size:9px;padding:1px 6px">${priLabel}</span>
+          <span style="font-size:10px;font-weight:700;color:${dlColor};min-width:30px;text-align:right">${dl}d</span>
+        </div>`;
+      }).join('');
+    } else {
+      jobsHTML = '<div style="padding:8px;font-size:12px;color:var(--tdi);font-style:italic">No active operations</div>';
+    }
+
+    grid.insertAdjacentHTML('beforeend', `
+      <div class="card" style="border-top:3px solid ${borderColor}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div>
+            <div style="font-size:15px;font-weight:700">${g.Description || grpId}</div>
+            <div style="font-size:11px;color:var(--tmu)">${grpId} · ${resources.length} resources · ${grpOps.length} active ops</div>
+          </div>
+          <span class="badge" style="background:${isLabor?'var(--os);color:var(--orange)':'var(--ts);color:var(--teal)'}">${isLabor?'👷 Labor':'⚙️ Machine'}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:8px">${resListHTML}</div>
+        <div style="background:var(--sa);border-radius:6px;border:1px solid var(--bl);overflow:hidden">
+          ${jobsHTML}
+        </div>
+      </div>
+    `);
+  });
+
+  if (visibleCount === 0) {
+    grid.innerHTML = showScheduledOnly
+      ? '<div class="card" style="text-align:center;color:var(--tmu);padding:30px">No resources with scheduled operations. Switch to "All Resources" to see everything.</div>'
+      : '<div class="card" style="text-align:center;color:var(--tmu);padding:30px">No resource groups found. Connect and pull data first.</div>';
+  }
+
+  document.getElementById('resJobCount').textContent = opers.length + ' active ops';
+}
+
+// ═══ JOB WORKFLOW ═══
+let WF_JOBS = []; // Jobs with their operations
+
+async function fetchWorkflow() {
+  document.getElementById('wfLoading').style.display = 'block';
+  try {
+    // Use existing LIVE_JOBS if available, otherwise fetch
+    if (LIVE_JOBS.length === 0) await fetchJobs();
+    if (LIVE_JOBS.length === 0) {
+      log('err', 'WORKFLOW', 'No jobs', 'No 2026 jobs found');
+      document.getElementById('wfLoading').style.display = 'none';
+      return;
+    }
+
+    // Batch fetch helper — splits job numbers into groups of 15 to keep URLs short
+    const jobSet = new Set(LIVE_JOBS.map(j => j.id));
+    const jobIds = LIVE_JOBS.map(j => j.id);
+    log('info', 'WORKFLOW', 'Fetching ops for', jobIds.length + ' jobs in batches');
+
+    async function batchFetch(endpoint, jobList, batchSize) {
+      let results = [];
+      for (let i = 0; i < jobList.length; i += batchSize) {
+        const batch = jobList.slice(i, i + batchSize);
+        const filter = batch.map(j => `JobNum eq '${j}'`).join(' or ');
+        try {
+          const data = await kineticAPI('GET',
+            `${endpoint}?$filter=${encodeURIComponent(filter)}&$top=1000`
+          );
+          results = results.concat(data.value || []);
+        } catch(e) {
+          log('info', 'WORKFLOW', 'Batch error', e.message?.substring(0,100));
+        }
+      }
+      return results;
+    }
+
+    let allOps = await batchFetch('Erp.BO.JobEntrySvc/JobOpers', jobIds, 15);
+    log('info', 'WORKFLOW', 'Operations fetched', allOps.length + ' ops for ' + jobIds.length + ' jobs');
+
+    // Group operations by job
+    const opsByJob = {};
+    allOps.forEach(op => {
+      if (!opsByJob[op.JobNum]) opsByJob[op.JobNum] = [];
+      opsByJob[op.JobNum].push(op);
+    });
+
+    // Sort operations within each job by sequence
+    Object.keys(opsByJob).forEach(jn => {
+      opsByJob[jn].sort((a, b) => (a.OprSeq || 0) - (b.OprSeq || 0));
+    });
+
+    // Build WF_JOBS with operations attached
+    WF_JOBS = LIVE_JOBS.filter(j => opsByJob[j.id] && opsByJob[j.id].length > 0).map(j => ({
+      ...j,
+      operations: opsByJob[j.id] || [],
+      materials: [] // populated below
+    }));
+
+    log('info', 'WORKFLOW', 'Jobs with ops', WF_JOBS.length + ' jobs loaded with operations');
+
+    // Fetch materials in batches
+    try {
+      let allMtls = await batchFetch('Erp.BO.JobEntrySvc/JobMtls', jobIds, 15);
+      log('info', 'WORKFLOW', 'Materials fetched', allMtls.length + ' materials for loaded jobs');
+
+      if (allMtls.length > 0) {
+        log('info', 'FIELDS', 'JobMtl', Object.keys(allMtls[0]).join(', '));
+      }
+
+      // Group materials by job
+      const mtlsByJob = {};
+      allMtls.forEach(m => {
+        if (!mtlsByJob[m.JobNum]) mtlsByJob[m.JobNum] = [];
+        mtlsByJob[m.JobNum].push(m);
+      });
+
+      // Attach to WF_JOBS
+      WF_JOBS.forEach(j => {
+        j.materials = (mtlsByJob[j.id] || []).sort((a, b) => (a.MtlSeq || 0) - (b.MtlSeq || 0));
+      });
+    } catch (mtlErr) {
+      log('info', 'WORKFLOW', 'Materials fetch skipped', mtlErr.message?.substring(0, 100));
+    }
+
+    if (allOps.length > 0) {
+      const sample = allOps[0];
+      log('info', 'DEBUG', 'Sample UPT Op',
+        `JobNum=${sample.JobNum} OprSeq=${sample.OprSeq} OpCode=${sample.OpCode} ` +
+        `PrimaryResourceGrpID="${sample.PrimaryResourceGrpID}" EstProdHours=${sample.EstProdHours} ` +
+        `ActProdHours=${sample.ActProdHours} OpComplete=${sample.OpComplete}`
+      );
+    }
+
+    renderWorkflow();
+  } catch (err) {
+    log('err', 'WORKFLOW', 'Error', err.message);
+  }
+  document.getElementById('wfLoading').style.display = 'none';
+}
+
+let activeWfFilter = '';
+
+function setWfFilter(val) {
+  activeWfFilter = val;
+  document.getElementById('wfFilter').value = val.startsWith('__') ? '' : val;
+  // Update button styles — reset all filter buttons, highlight active
+  document.querySelectorAll('#tab-workflow .btn').forEach(b => {
+    if (b.onclick && b.textContent !== '↻ Refresh Data') {
+      b.className = 'btn btn-outline';
+      b.style.fontSize = '11px';
+      b.style.padding = '5px 10px';
+    }
+  });
+  // Find the clicked button and highlight it
+  const btnMap = {'': 'wfBtnAll'};
+  if (val === '') document.getElementById('wfBtnAll').className = 'btn btn-teal';
+  else {
+    document.querySelectorAll('#tab-workflow .btn').forEach(b => {
+      if (b.onclick?.toString().includes(`'${val}'`)) b.className = 'btn btn-teal';
+    });
+  }
+  renderWorkflow();
+}
+
+function renderWorkflow() {
+  const grid = document.getElementById('wfGrid');
+  grid.innerHTML = '';
+  const filterText = (document.getElementById('wfFilter')?.value || '').toLowerCase();
+  const smartFilter = activeWfFilter;
+  const today = new Date();
+
+  const filtered = WF_JOBS.filter(j => {
+    // Smart filters
+    if (smartFilter === '__critical') {
+      const dl = j.dueDate ? Math.ceil((new Date(j.dueDate) - today) / 86400000) : 99;
+      return dl <= 7;
+    }
+    if (smartFilter === '__late') {
+      // Check if estimated finish is past due date
+      let remainingHrs = 0;
+      j.operations.forEach(op => { if (!op.OpComplete) remainingHrs += (op.EstProdHours || 0) + (op.EstSetHours || 0); });
+      const workDays = Math.ceil(remainingHrs / 8);
+      const estFinish = new Date(today); estFinish.setDate(estFinish.getDate() + workDays);
+      const schedDue = j.raw?.DueDate ? new Date(j.raw.DueDate) : null;
+      const due = j.dueDate ? new Date(j.dueDate) : null;
+      const finishDate = (schedDue && schedDue.getFullYear() > 2000) ? schedDue : estFinish;
+      return due && finishDate > due;
+    }
+    if (smartFilter === '__inprogress') {
+      return j.operations.some(op => op.OpComplete) && j.operations.some(op => !op.OpComplete);
+    }
+    // Text filter
+    if (!filterText) return true;
+    return j.id.toLowerCase().includes(filterText)
+      || (j.part || '').toLowerCase().includes(filterText)
+      || (j.raw?.CommentText || '').toLowerCase().includes(filterText)
+      || (j.raw?.PartNum || '').toLowerCase().includes(filterText);
+  });
+
+  document.getElementById('wfCount').textContent = filtered.length + ' jobs';
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="card" style="text-align:center;color:var(--tmu);padding:30px">No jobs with operations found. Pull data first.</div>';
+    return;
+  }
+
+  // Sort: nearest due date first
+  filtered.sort((a, b) => {
+    const da = a.dueDate ? new Date(a.dueDate) : new Date('2099-01-01');
+    const db = b.dueDate ? new Date(b.dueDate) : new Date('2099-01-01');
+    return da - db;
+  });
+
+  filtered.forEach(j => {
+    const today = new Date();
+    const dl = j.dueDate ? Math.ceil((new Date(j.dueDate) - today) / 86400000) : 99;
+    const dlColor = dl <= 3 ? 'var(--red)' : dl <= 7 ? 'var(--orange)' : dl <= 14 ? 'var(--yellow)' : 'var(--green)';
+    const priLabel = PRI_LABELS[j.priority] || j.priority || 'Normal';
+    const priColor = PRI_COLORS[priLabel] || 'var(--sa);color:var(--tmu)';
+    const comment = j.raw?.CommentText || '';
+
+    // ─── Time-based progress ───
+    const totalOps = j.operations.length;
+    const completeOps = j.operations.filter(op => op.OpComplete).length;
+
+    // Calculate total estimated hours and actual hours across all ops
+    let totalEstHrs = 0, totalActHrs = 0, remainingHrs = 0;
+    j.operations.forEach(op => {
+      const est = (op.EstProdHours || 0) + (op.EstSetHours || 0);
+      const act = (op.ActProdHours || 0) + (op.ActSetupHours || 0);
+      totalEstHrs += est;
+      totalActHrs += act;
+      if (!op.OpComplete) remainingHrs += est;
+    });
+
+    // Time-based percentage (if no actual hours, fall back to op count)
+    const pct = totalEstHrs > 0
+      ? Math.min(100, Math.round(((totalEstHrs - remainingHrs) / totalEstHrs) * 100))
+      : (totalOps > 0 ? Math.round((completeOps / totalOps) * 100) : 0);
+
+    // ─── Dates ───
+    const reqDueDate = j.dueDate || '';
+    const schedDueDate = (j.raw?.DueDate || '').split('T')[0];
+    const schedStartDate = (j.raw?.StartDate || '').split('T')[0];
+    const shipDate = schedDueDate || reqDueDate; // Scheduled due = ship target
+
+    // ─── Estimated finish date ───
+    let estFinishDate = '';
+    let estFinishDays = null;
+    if (schedDueDate && schedDueDate !== '0001-01-01') {
+      // Use scheduled due date from Kinetic scheduler
+      estFinishDate = schedDueDate;
+      estFinishDays = Math.ceil((new Date(schedDueDate) - today) / 86400000);
+    } else if (remainingHrs > 0) {
+      // Estimate: remaining hours ÷ 8 hrs/day = working days from now
+      const workDaysRemaining = Math.ceil(remainingHrs / 8);
+      const estFinish = new Date(today);
+      estFinish.setDate(estFinish.getDate() + workDaysRemaining);
+      estFinishDate = estFinish.toISOString().split('T')[0];
+      estFinishDays = workDaysRemaining;
+    }
+
+    // Is the estimated finish after the due date?
+    const isLate = estFinishDate && reqDueDate && new Date(estFinishDate) > new Date(reqDueDate);
+
+    // Find current operation
+    const currentOp = j.operations.find(op => !op.OpComplete);
+    const currentSeq = currentOp ? currentOp.OprSeq : null;
+
+    // Build operation workflow nodes
+    const opsHTML = j.operations.map((op, idx) => {
+      const isComplete = op.OpComplete || false;
+      const isCurrent = op.OprSeq === currentSeq;
+      const isPending = !isComplete && !isCurrent;
+
+      const estHrs = (op.EstProdHours || 0) + (op.EstSetHours || 0);
+      const actHrs = (op.ActProdHours || 0) + (op.ActSetupHours || 0);
+      const timeDiff = actHrs - estHrs;
+      const isOverTime = isComplete && timeDiff > 0.1;
+
+      let nodeBg, nodeBorder, nodeTextColor, statusIcon;
+      if (isComplete) {
+        nodeBg = isOverTime ? 'var(--rs)' : 'var(--gs)';
+        nodeBorder = isOverTime ? 'var(--red)' : 'var(--green)';
+        nodeTextColor = isOverTime ? 'var(--red)' : 'var(--green)';
+        statusIcon = isOverTime ? '⚠' : '✓';
+      } else if (isCurrent) {
+        nodeBg = 'var(--ts)';
+        nodeBorder = 'var(--teal)';
+        nodeTextColor = 'var(--teal)';
+        statusIcon = '▶';
+      } else {
+        nodeBg = 'var(--sa)';
+        nodeBorder = 'var(--bd)';
+        nodeTextColor = 'var(--tdi)';
+        statusIcon = '';
+      }
+
+      const resGrp = op.PrimaryResourceGrpID || op.ResourceGrpID || op.WCCode || '';
+      const opCode = op.OpCode || '';
+
+      let timeHTML = '';
+      if (isComplete && actHrs > 0) {
+        const sign = timeDiff > 0 ? '+' : '';
+        const timeColor = timeDiff > 0 ? 'var(--red)' : 'var(--green)';
+        timeHTML = `<div style="font-size:9px;font-weight:700;color:${timeColor}">${sign}${timeDiff.toFixed(1)}h</div>`;
+      } else if (isCurrent && estHrs > 0) {
+        timeHTML = `<div style="font-size:9px;color:var(--tmu)">${estHrs.toFixed(1)}h est</div>`;
+      } else if (isPending && estHrs > 0) {
+        timeHTML = `<div style="font-size:9px;color:var(--tdi)">${estHrs.toFixed(1)}h</div>`;
+      }
+
+      const arrow = idx < j.operations.length - 1
+        ? `<div style="display:flex;align-items:center;color:var(--bd);font-size:14px;margin:0 2px">→</div>`
+        : '';
+
+      return `<div style="display:flex;align-items:center">
+        <div style="min-width:72px;padding:6px 8px;border-radius:6px;background:${nodeBg};border:2px solid ${nodeBorder};text-align:center">
+          <div style="font-size:9px;font-weight:700;color:${nodeTextColor};margin-bottom:1px">${statusIcon} ${opCode}</div>
+          <div style="font-size:9px;color:${nodeTextColor}">${resGrp}</div>
+          ${timeHTML}
+        </div>
+        ${arrow}
+      </div>`;
+    }).join('');
+
+    const progressColor = isLate ? 'var(--red)' : dl <= 3 ? 'var(--red)' : dl <= 7 ? 'var(--orange)' : 'var(--teal)';
+    const cardBorder = isLate ? 'var(--red)' : dl <= 3 ? 'var(--red)' : dl <= 7 ? 'var(--orange)' : dl <= 14 ? 'var(--yellow)' : 'var(--teal)';
+
+    // Format dates helper
+    const fmtDate = d => d && d !== '0001-01-01' ? d : '—';
+    const estFinishColor = isLate ? 'var(--red)' : 'var(--green)';
+
+    grid.insertAdjacentHTML('beforeend', `
+      <div class="card" style="border-left:4px solid ${cardBorder};margin-bottom:12px;cursor:pointer" onclick="selectJob('${j.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="mono" style="font-size:15px;font-weight:700;color:var(--teal)">${j.id}</span>
+              <span style="font-size:14px;font-weight:600">${j.part || ''}</span>
+              <span class="badge" style="background:${priColor};font-size:10px">${priLabel}</span>
+            </div>
+            ${comment ? `<div style="font-size:11px;color:var(--tmu);margin-top:2px;font-style:italic">${comment}</div>` : ''}
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:20px;font-weight:700;color:${dlColor};line-height:1">${dl}d</div>
+            <div style="font-size:9px;color:var(--tmu)">to due date</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="font-size:12px;font-weight:700;color:${progressColor};min-width:50px">${pct}%</div>
+          <div style="flex:1;height:8px;background:var(--bl);border-radius:4px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:${progressColor};border-radius:4px;transition:width .3s"></div>
+          </div>
+          <div style="font-size:10px;color:var(--tmu)">${totalActHrs.toFixed(1)}h / ${totalEstHrs.toFixed(1)}h</div>
+          <div style="font-size:10px;color:var(--tmu)">${completeOps}/${totalOps} ops</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px;padding:8px;background:var(--sa);border-radius:6px">
+          <div style="text-align:center">
+            <div style="font-size:9px;font-weight:600;color:var(--tmu);text-transform:uppercase;letter-spacing:.5px">Due Date</div>
+            <div class="mono" style="font-size:12px;font-weight:700;color:${dlColor}">${fmtDate(reqDueDate)}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:9px;font-weight:600;color:var(--tmu);text-transform:uppercase;letter-spacing:.5px">Est. Finish</div>
+            <div class="mono" style="font-size:12px;font-weight:700;color:${estFinishColor}">${fmtDate(estFinishDate)}${isLate ? ' ⚠' : ''}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:9px;font-weight:600;color:var(--tmu);text-transform:uppercase;letter-spacing:.5px">Ship Target</div>
+            <div class="mono" style="font-size:12px;font-weight:700;color:var(--tx)">${fmtDate(shipDate)}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:9px;font-weight:600;color:var(--tmu);text-transform:uppercase;letter-spacing:.5px">Remaining</div>
+            <div style="font-size:12px;font-weight:700;color:${remainingHrs > 0 ? 'var(--tmu)' : 'var(--green)'}">${remainingHrs.toFixed(1)}h</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;overflow-x:auto;padding:4px 0;gap:0">
+          ${opsHTML}
+        </div>
+
+        ${j.materials && j.materials.length > 0 ? `
+        <div style="margin-top:8px;border-top:1px solid var(--bl);padding-top:8px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tmu);margin-bottom:6px">Materials (${j.materials.length})</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+          ${j.materials.map(m => {
+            const issued = m.IssuedComplete || false;
+            const issuedQty = m.IssuedQty || m.TotalCost ? m.IssuedQty : 0;
+            const reqQty = m.RequiredQty || m.QtyPer || 0;
+            const partNum = m.PartNum || '';
+            const desc = m.Description || m.PartDescription || partNum;
+            const buyIt = isBuyMaterial(m);
+            const poNum = m.PONum || 0;
+            const poLine = m.POLine || 0;
+            const poRelNum = m.PORelNum || 0;
+            const dueDate = (m.ReqDate || m.RequiredDate || '').split('T')[0];
+            const warehouse = m.WarehouseCode || m.IssueWhse || '';
+
+            // Determine material status
+            let statusLabel, statusColor, statusBg, statusIcon;
+            if (issued) {
+              statusLabel = 'Issued';
+              statusColor = 'var(--green)';
+              statusBg = 'var(--gs)';
+              statusIcon = '✓';
+            } else if (buyIt && poNum > 0) {
+              statusLabel = 'PO ' + poNum + '-' + poLine;
+              statusColor = 'var(--teal)';
+              statusBg = 'var(--ts)';
+              statusIcon = '⬇';
+            } else if (buyIt) {
+              statusLabel = 'Needs PO';
+              statusColor = 'var(--red)';
+              statusBg = 'var(--rs)';
+              statusIcon = '!';
+            } else if (warehouse) {
+              statusLabel = 'Issue from ' + warehouse;
+              statusColor = 'var(--orange)';
+              statusBg = 'var(--os)';
+              statusIcon = '→';
+            } else {
+              statusLabel = 'Pending';
+              statusColor = 'var(--tmu)';
+              statusBg = 'var(--sa)';
+              statusIcon = '○';
+            }
+
+            return '<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--sa);border-radius:4px;border:1px solid var(--bl);font-size:11px">' +
+              '<span class="mono" style="font-weight:600;color:var(--teal);min-width:90px;font-size:10px">' + partNum + '</span>' +
+              '<span style="flex:1;color:var(--tx)">' + desc + '</span>' +
+              '<span class="mono" style="font-size:10px;color:var(--tmu)">' + (reqQty > 0 ? reqQty : '') + '</span>' +
+              '<span class="badge" style="background:' + statusBg + ';color:' + statusColor + ';font-size:9px;padding:1px 6px;white-space:nowrap">' + statusIcon + ' ' + statusLabel + '</span>' +
+              (dueDate && dueDate !== '0001-01-01' ? '<span class="mono" style="font-size:9px;color:var(--tdi)">' + dueDate + '</span>' : '') +
+            '</div>';
+          }).join('')}
+          </div>
+        </div>
+        ` : ''}
+
+        ${(() => {
+          // Generate AI suggestions for this job
+          const suggestions = [];
+          const today = new Date();
+
+          // Due date risk
+          if (dl <= 3 && dl >= 0) suggestions.push({icon:'●',color:'var(--red)',text:`Due in ${dl} days — expedite immediately. Set priority to IMMED to trigger forward scheduling.`});
+          else if (dl <= 7 && dl >= 0) suggestions.push({icon:'▲',color:'var(--orange)',text:`Due in ${dl} days — review capacity on ${j.operations.map(o=>o.PrimaryResourceGrpID||o.OpCode).filter(Boolean).join(', ')} to ensure on-time delivery.`});
+
+          // Late risk
+          if (isLate) suggestions.push({icon:'●',color:'var(--red)',text:'Estimated finish exceeds due date. Consider splitting operations across sister machines or adding overtime to recover schedule.'});
+
+          // Priority too low for urgent job
+          if (dl <= 7 && (priLabel === 'Normal' || priLabel === 'Low')) suggestions.push({icon:'▲',color:'var(--orange)',text:`Priority is ${priLabel} but job is due in ${dl} days. Recommend raising to HIGH or IMMED.`});
+
+          // Material not issued
+          const unissuedMtls = (j.materials||[]).filter(m => !m.IssuedComplete);
+          const needsPO = (j.materials||[]).filter(m => isBuyMaterial(m) && !(m.PONum > 0) && !m.IssuedComplete);
+          if (needsPO.length > 0) suggestions.push({icon:'●',color:'var(--red)',text:`${needsPO.length} material(s) need a Purchase Order: ${needsPO.map(m=>m.PartNum).join(', ')}. Job cannot start until material arrives.`});
+          else if (unissuedMtls.length > 0) suggestions.push({icon:'◆',color:'var(--orange)',text:`${unissuedMtls.length} material(s) not yet issued to the job. Ensure stock is available in warehouse before first operation begins.`});
+
+          // No operations started
+          if (completeOps === 0 && totalOps > 0 && dl <= 14) suggestions.push({icon:'◆',color:'var(--yellow)',text:'No operations started yet. Review queue position and ensure materials are staged for the first operation.'});
+
+          // High hours remaining
+          if (remainingHrs > 20 && dl <= 7) suggestions.push({icon:'▲',color:'var(--orange)',text:`${remainingHrs.toFixed(1)}h of work remaining with only ${dl} days to due date. Consider parallel operations or second shift.`});
+
+          if (suggestions.length === 0) return '';
+          return `
+          <div style="margin-top:8px;border-top:1px solid var(--bl);padding-top:8px">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--purple);margin-bottom:6px;display:flex;align-items:center;gap:4px">
+              <span style="font-size:12px">✦</span> AI Suggestions
+            </div>
+            ${suggestions.map(s => `
+              <div style="display:flex;align-items:flex-start;gap:6px;padding:4px 8px;margin-bottom:4px;background:var(--sa);border-radius:4px;border-left:3px solid ${s.color};font-size:11px;line-height:1.5">
+                <span style="color:${s.color};font-weight:700;flex-shrink:0;margin-top:1px">${s.icon}</span>
+                <span style="color:var(--tx)">${s.text}</span>
+              </div>
+            `).join('')}
+          </div>`;
+        })()}
+
+        <div style="display:flex;justify-content:between;gap:12px;margin-top:6px">
+          <span class="mono" style="font-size:10px;color:var(--tdi)">Qty: ${j.qty}</span>
+          ${isLate ? '<span style="font-size:10px;font-weight:700;color:var(--red)">⚠ ESTIMATED LATE — Est. finish is past due date</span>' : ''}
+        </div>
+      </div>
+    `);
+  });
+}
+
+// ═══ DEMAND PLANNING & PO SUGGESTIONS ═══
+let demandView = 'po';
+
+// Helper: determine if a material is purchased (needs PO)
+function isBuyMaterial(m) {
+  if (m.BuyIt === true || m.BuyIt === 'true' || m.BuyIt === 'TRUE') return true;
+  if (m.Direct === true || m.Direct === 'true') return true;
+  const pn = (m.PartNum || '').toUpperCase();
+  if (pn.includes('-PUR-') || pn.includes('-LED-') || pn.includes('-DRV-') ||
+      pn.includes('-OPT-') || pn.includes('-WIR-') || pn.includes('-CON-') ||
+      pn.includes('-HBR-') || pn.includes('-JBX-') || pn.includes('-GKT-') ||
+      pn.includes('-BFL-') || pn.includes('-PKG-') || pn.includes('-LBL-') ||
+      pn.includes('-ZNC-') || pn.includes('-RAW-')) return true;
+  return false;
+}
+
+function renderDemand(view) {
+  demandView = view || demandView;
+  const content = document.getElementById('demandContent');
+  content.innerHTML = '';
+
+  // Update buttons
+  document.querySelectorAll('#tab-demand .btn').forEach(b => {
+    if (b.id && b.id.startsWith('demBtn')) b.className = 'btn btn-outline';
+  });
+  const btnMap = {po:'demBtnPO',consolidate:'demBtnCon',demand:'demBtnDem',critical:'demBtnCrit'};
+  if (btnMap[demandView]) document.getElementById(btnMap[demandView]).className = 'btn btn-teal';
+
+  if (WF_JOBS.length === 0) {
+    content.innerHTML = '<div class="card" style="text-align:center;color:var(--tmu);padding:30px">Connect and pull data first.</div>';
+    return;
+  }
+
+  // Debug: check materials loaded
+  let totalMtls = 0;
+  WF_JOBS.forEach(j => totalMtls += (j.materials||[]).length);
+  log('info', 'DEMAND', 'Data check', WF_JOBS.length + ' jobs with ' + totalMtls + ' total material lines');
+
+  if (totalMtls === 0) {
+    content.innerHTML = `<div class="card" style="border-left:3px solid var(--orange);padding:20px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px">No material data loaded</div>
+      <div style="font-size:12px;color:var(--tmu);line-height:1.6">
+        Materials were not returned from the API. This can happen if:<br>
+        • Job Materials weren't loaded via DMT yet<br>
+        • The API returned an error (check API Log tab)<br>
+        <br>Found ${WF_JOBS.length} jobs with operations but 0 material lines.
+      </div>
+    </div>`;
+    return;
+  }
+
+  // Log a sample material for debugging
+  const sampleMtl = WF_JOBS.find(j => (j.materials||[]).length > 0)?.materials?.[0];
+  if (sampleMtl) {
+    log('info', 'DEMAND', 'Sample Material Fields',
+      `PartNum=${sampleMtl.PartNum} BuyIt=${sampleMtl.BuyIt} Direct=${sampleMtl.Direct} ` +
+      `PONum=${sampleMtl.PONum} IssuedComplete=${sampleMtl.IssuedComplete} ` +
+      `FixedQty=${sampleMtl.FixedQty} QtyPer=${sampleMtl.QtyPer} RequiredQty=${sampleMtl.RequiredQty}`
+    );
+  }
+
+  // Aggregate all materials across all jobs
+  const mtlAgg = {};
+  WF_JOBS.forEach(j => {
+    (j.materials || []).forEach(m => {
+      const pn = m.PartNum || '';
+      if (!pn) return;
+      const buyIt = isBuyMaterial(m);
+      if (!mtlAgg[pn]) mtlAgg[pn] = {totalQty:0, jobs:[], buyIt: buyIt, desc: m.Description||m.PartDescription||pn, issued:0, needsPO:0, onPO:0, fromStock:0};
+      const qty = (m.RequiredQty || m.QtyPer || 0) * (m.RequiredQty ? 1 : (j.qty||1));
+      mtlAgg[pn].totalQty += qty;
+      mtlAgg[pn].jobs.push({jobNum:j.id, qty:qty, dueDate:j.dueDate, part:j.part, issued:m.IssuedComplete||false, poNum:m.PONum||0, buyIt:buyIt});
+      if (m.IssuedComplete) mtlAgg[pn].issued += qty;
+      else if (buyIt && (m.PONum||0) > 0) mtlAgg[pn].onPO += qty;
+      else if (buyIt) mtlAgg[pn].needsPO += qty;
+      else mtlAgg[pn].fromStock += qty;
+    });
+  });
+
+  log('info', 'DEMAND', 'Aggregated', Object.keys(mtlAgg).length + ' unique materials, ' +
+    Object.values(mtlAgg).filter(d=>d.needsPO>0).length + ' needing POs');
+
+  if (demandView === 'po') renderPOSuggestions(content, mtlAgg);
+  else if (demandView === 'consolidate') renderConsolidation(content, mtlAgg);
+  else if (demandView === 'demand') renderDemandForecast(content, mtlAgg);
+  else if (demandView === 'critical') renderCriticalShortages(content, mtlAgg);
+}
+
+function renderPOSuggestions(el, mtlAgg) {
+  // Find materials needing POs
+  const needsPO = Object.entries(mtlAgg)
+    .filter(([pn, d]) => d.needsPO > 0)
+    .sort((a, b) => b[1].needsPO - a[1].needsPO);
+
+  el.insertAdjacentHTML('beforeend', `
+    <div class="card" style="border-left:3px solid var(--red);margin-bottom:16px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">Purchase Order Suggestions</div>
+      <div style="font-size:12px;color:var(--tmu)">AI identified <b style="color:var(--red)">${needsPO.length} materials</b> across active jobs that require purchase orders. These are flagged as Buy-It but have no PO assigned.</div>
+    </div>
+  `);
+
+  if (needsPO.length === 0) {
+    el.insertAdjacentHTML('beforeend', '<div class="card" style="text-align:center;color:var(--green);padding:20px;font-weight:600">✓ All purchased materials have POs assigned</div>');
+    return;
+  }
+
+  needsPO.forEach(([pn, data]) => {
+    const urgentJobs = data.jobs.filter(j => !j.issued && j.buyIt && (j.poNum||0) === 0)
+      .sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+    const earliestDue = urgentJobs.length > 0 ? urgentJobs[0].dueDate : '—';
+    const dl = earliestDue !== '—' ? Math.ceil((new Date(earliestDue) - new Date()) / 86400000) : 99;
+    const dlColor = dl <= 7 ? 'var(--red)' : dl <= 14 ? 'var(--orange)' : 'var(--tmu)';
+
+    // Estimate lead time and suggest order-by date
+    const estLeadDays = pn.includes('LED') || pn.includes('DRV') ? 14 : pn.includes('OPT') ? 10 : 7;
+    const orderBy = new Date(new Date(earliestDue) - estLeadDays * 86400000);
+    const orderByStr = orderBy.toISOString().split('T')[0];
+    const orderByPast = orderBy < new Date();
+
+    el.insertAdjacentHTML('beforeend', `
+      <div class="card" style="border-left:4px solid ${orderByPast ? 'var(--red)' : dlColor};margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--teal)">${pn}</div>
+            <div style="font-size:12px;color:var(--tmu)">${data.desc}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:18px;font-weight:700;color:${dlColor}">${data.needsPO.toFixed(0)}</div>
+            <div style="font-size:9px;color:var(--tmu)">qty needed</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">
+          <div style="padding:6px;background:var(--sa);border-radius:4px;text-align:center">
+            <div style="font-size:9px;color:var(--tmu);text-transform:uppercase">Jobs Affected</div>
+            <div style="font-size:14px;font-weight:700">${urgentJobs.length}</div>
+          </div>
+          <div style="padding:6px;background:var(--sa);border-radius:4px;text-align:center">
+            <div style="font-size:9px;color:var(--tmu);text-transform:uppercase">Earliest Due</div>
+            <div class="mono" style="font-size:12px;font-weight:700;color:${dlColor}">${earliestDue}</div>
+          </div>
+          <div style="padding:6px;background:var(--sa);border-radius:4px;text-align:center">
+            <div style="font-size:9px;color:var(--tmu);text-transform:uppercase">Est. Lead Time</div>
+            <div style="font-size:14px;font-weight:700">${estLeadDays}d</div>
+          </div>
+          <div style="padding:6px;background:${orderByPast?'var(--rs)':'var(--sa)'};border-radius:4px;text-align:center">
+            <div style="font-size:9px;color:var(--tmu);text-transform:uppercase">Order By</div>
+            <div class="mono" style="font-size:12px;font-weight:700;color:${orderByPast?'var(--red)':'var(--tx)'}">${orderByStr}${orderByPast?' ⚠':''}</div>
+          </div>
+        </div>
+
+        <div style="font-size:10px;font-weight:600;color:var(--tmu);margin-bottom:4px">Jobs requiring this material:</div>
+        <div style="max-height:120px;overflow-y:auto">
+          ${urgentJobs.slice(0,8).map(j => {
+            const jdl = j.dueDate ? Math.ceil((new Date(j.dueDate) - new Date()) / 86400000) : 99;
+            const jdlColor = jdl <= 7 ? 'var(--red)' : jdl <= 14 ? 'var(--orange)' : 'var(--tdi)';
+            return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--bl);font-size:11px">
+              <span class="mono" style="font-weight:600;color:var(--teal);min-width:65px">${j.jobNum}</span>
+              <span style="flex:1;color:var(--tx)">${j.part||''}</span>
+              <span class="mono" style="font-size:10px;color:var(--tmu)">${j.qty.toFixed(0)} ea</span>
+              <span style="font-size:10px;font-weight:700;color:${jdlColor}">${jdl}d</span>
+            </div>`;
+          }).join('')}
+          ${urgentJobs.length > 8 ? `<div style="font-size:10px;color:var(--tmu);padding:4px">+ ${urgentJobs.length-8} more jobs</div>` : ''}
+        </div>
+
+        ${orderByPast ? '<div style="margin-top:8px;padding:6px 10px;background:var(--rs);border-radius:4px;font-size:11px;font-weight:600;color:var(--red)">⚠ ORDER DATE HAS PASSED — This material needs to be expedited or the affected jobs will be late.</div>' : ''}
+      </div>
+    `);
+  });
+}
+
+function renderConsolidation(el, mtlAgg) {
+  // Find materials ordered by multiple jobs that could be consolidated into single POs
+  const multiJob = Object.entries(mtlAgg)
+    .filter(([pn, d]) => d.jobs.length >= 3 && (d.needsPO > 0 || d.buyIt))
+    .sort((a, b) => b[1].jobs.length - a[1].jobs.length);
+
+  el.insertAdjacentHTML('beforeend', `
+    <div class="card" style="border-left:3px solid var(--purple);margin-bottom:16px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">✦ PO Consolidation Opportunities</div>
+      <div style="font-size:12px;color:var(--tmu)">AI found <b>${multiJob.length} materials</b> used across 3+ jobs. Consolidating into blanket POs can reduce per-unit cost and simplify receiving.</div>
+    </div>
+  `);
+
+  el.insertAdjacentHTML('beforeend', '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px">');
+  const grid = el.lastChild;
+
+  multiJob.forEach(([pn, data]) => {
+    const savingsPct = data.jobs.length >= 5 ? '8-12%' : data.jobs.length >= 3 ? '3-6%' : '1-3%';
+    grid.insertAdjacentHTML('beforeend', `
+      <div class="card" style="border-top:3px solid var(--purple)">
+        <div style="font-size:13px;font-weight:700;color:var(--teal)">${pn}</div>
+        <div style="font-size:11px;color:var(--tmu);margin-bottom:8px">${data.desc}</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">
+          <div style="text-align:center;padding:6px;background:var(--sa);border-radius:4px">
+            <div style="font-size:16px;font-weight:700">${data.jobs.length}</div>
+            <div style="font-size:9px;color:var(--tmu)">Jobs</div>
+          </div>
+          <div style="text-align:center;padding:6px;background:var(--sa);border-radius:4px">
+            <div style="font-size:16px;font-weight:700">${data.totalQty.toFixed(0)}</div>
+            <div style="font-size:9px;color:var(--tmu)">Total Qty</div>
+          </div>
+          <div style="text-align:center;padding:6px;background:var(--ps);border-radius:4px">
+            <div style="font-size:16px;font-weight:700;color:var(--purple)">${savingsPct}</div>
+            <div style="font-size:9px;color:var(--purple)">Est. Savings</div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--tmu)">✦ Consolidate into a blanket PO with scheduled releases to reduce procurement cost and simplify vendor management.</div>
+      </div>
+    `);
+  });
+}
+
+function renderDemandForecast(el, mtlAgg) {
+  // Show demand by week
+  const weeks = {};
+  WF_JOBS.forEach(j => {
+    if (!j.dueDate) return;
+    const due = new Date(j.dueDate);
+    const weekStart = new Date(due);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    const wk = weekStart.toISOString().split('T')[0];
+    if (!weeks[wk]) weeks[wk] = {jobs:0, qty:0, hrs:0, parts:{}};
+    weeks[wk].jobs++;
+    weeks[wk].qty += j.qty || 0;
+    const jobHrs = (j.operations||[]).reduce((s,op) => s + (op.EstProdHours||0) + (op.EstSetHours||0), 0);
+    weeks[wk].hrs += jobHrs;
+    const p = j.part || 'Other';
+    weeks[wk].parts[p] = (weeks[wk].parts[p]||0) + (j.qty||0);
+  });
+
+  const sortedWeeks = Object.entries(weeks).sort((a,b) => a[0].localeCompare(b[0]));
+  const maxHrs = Math.max(...sortedWeeks.map(([,d]) => d.hrs), 1);
+
+  el.insertAdjacentHTML('beforeend', `
+    <div class="card" style="border-left:3px solid var(--teal);margin-bottom:16px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">Demand Forecast by Week</div>
+      <div style="font-size:12px;color:var(--tmu)">Production demand across ${sortedWeeks.length} weeks based on job due dates. Identifies peaks for capacity planning.</div>
+    </div>
+  `);
+
+  sortedWeeks.forEach(([wk, data]) => {
+    const barPct = Math.round((data.hrs / maxHrs) * 100);
+    const topParts = Object.entries(data.parts).sort((a,b) => b[1] - a[1]).slice(0,3);
+    const barColor = data.hrs > 200 ? 'var(--red)' : data.hrs > 120 ? 'var(--orange)' : data.hrs > 60 ? 'var(--yellow)' : 'var(--teal)';
+
+    el.insertAdjacentHTML('beforeend', `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--sf);border:1px solid var(--bl);border-radius:6px;margin-bottom:6px">
+        <div style="min-width:90px">
+          <div class="mono" style="font-size:12px;font-weight:700">Wk ${wk.substring(5)}</div>
+          <div style="font-size:10px;color:var(--tmu)">${data.jobs} jobs</div>
+        </div>
+        <div style="flex:1">
+          <div style="height:20px;background:var(--bl);border-radius:4px;overflow:hidden;margin-bottom:4px">
+            <div style="width:${barPct}%;height:100%;background:${barColor};border-radius:4px"></div>
+          </div>
+          <div style="font-size:10px;color:var(--tmu)">${topParts.map(([p,q]) => `${p} (${q})`).join(' · ')}</div>
+        </div>
+        <div style="text-align:right;min-width:70px">
+          <div style="font-size:16px;font-weight:700;color:${barColor}">${data.hrs.toFixed(0)}h</div>
+          <div style="font-size:10px;color:var(--tmu)">${data.qty} units</div>
+        </div>
+      </div>
+    `);
+  });
+}
+
+function renderCriticalShortages(el, mtlAgg) {
+  // Materials where jobs are due soon and material is not issued/on PO
+  const critical = [];
+  WF_JOBS.forEach(j => {
+    const dl = j.dueDate ? Math.ceil((new Date(j.dueDate) - new Date()) / 86400000) : 99;
+    if (dl > 14) return;
+    (j.materials || []).forEach(m => {
+      if (m.IssuedComplete) return;
+      if (isBuyMaterial(m) && (m.PONum||0) === 0) {
+        critical.push({jobNum:j.id, part:j.part, dl:dl, mtl:m.PartNum, mtlDesc:m.Description||m.PartDescription||'', type:'Needs PO', color:'var(--red)'});
+      } else if (!isBuyMaterial(m) && !m.IssuedComplete) {
+        critical.push({jobNum:j.id, part:j.part, dl:dl, mtl:m.PartNum, mtlDesc:m.Description||m.PartDescription||'', type:'Not Issued', color:'var(--orange)'});
+      }
+    });
+  });
+
+  critical.sort((a,b) => a.dl - b.dl);
+
+  el.insertAdjacentHTML('beforeend', `
+    <div class="card" style="border-left:3px solid var(--red);margin-bottom:16px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">Critical Material Shortages</div>
+      <div style="font-size:12px;color:var(--tmu)"><b style="color:var(--red)">${critical.length} material lines</b> on jobs due within 14 days are not yet issued or lack purchase orders. These are blocking production.</div>
+    </div>
+  `);
+
+  if (critical.length === 0) {
+    el.insertAdjacentHTML('beforeend', '<div class="card" style="text-align:center;color:var(--green);padding:20px;font-weight:600">✓ No critical material shortages</div>');
+    return;
+  }
+
+  el.insertAdjacentHTML('beforeend', '<div class="card" style="padding:0;overflow-x:auto"><table style="width:100%"><thead><tr><th>Job</th><th>Product</th><th>Due In</th><th>Material</th><th>Description</th><th>Status</th></tr></thead><tbody>');
+  const tbody = el.lastChild.querySelector('tbody');
+
+  critical.forEach(c => {
+    const dlColor = c.dl <= 3 ? 'var(--red)' : c.dl <= 7 ? 'var(--orange)' : 'var(--yellow)';
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr onclick="selectJob('${c.jobNum}')" style="cursor:pointer">
+        <td class="mono" style="font-weight:600;color:var(--teal)">${c.jobNum}</td>
+        <td style="font-weight:500">${c.part}</td>
+        <td style="font-weight:700;color:${dlColor}">${c.dl}d</td>
+        <td class="mono" style="font-size:11px;color:var(--teal)">${c.mtl}</td>
+        <td style="font-size:11px">${c.mtlDesc}</td>
+        <td><span class="badge" style="background:${c.type==='Needs PO'?'var(--rs);color:var(--red)':'var(--os);color:var(--orange)'}">! ${c.type}</span></td>
+      </tr>
+    `);
+  });
+  el.insertAdjacentHTML('beforeend', '</tbody></table></div>');
+}
+
+// ═══ SCHEDULING TAB ═══
+let SCHED_HORIZON = 5; // working days
+let SCHED_EXPANDED = null; // currently expanded group
+
+function setSchedHorizon(days) {
+  SCHED_HORIZON = days;
+  document.querySelectorAll('#tab-scheduling .btn').forEach(b => {
+    if (b.id && b.id.startsWith('schedH')) {
+      b.className = 'btn btn-outline';
+    }
+  });
+  document.getElementById('schedH' + days).className = 'btn btn-teal';
+  if (SCHED_EXPANDED) schedDrillIn(SCHED_EXPANDED);
+  else renderScheduling();
+}
+
+function schedBackToOverview() {
+  SCHED_EXPANDED = null;
+  document.getElementById('schedDetail').style.display = 'none';
+  document.getElementById('schedOverview').style.display = 'block';
+  document.getElementById('schedBackBtn').style.display = 'none';
+  renderScheduling();
+}
+
+function getGroupCapacity(grpId, resources) {
+  const hrsPerDay = 8;
+  const numRes = Math.max(resources.length, 1);
+  return numRes * hrsPerDay * SCHED_HORIZON;
+}
+
+function renderScheduling() {
+  const overview = document.getElementById('schedOverview');
+  overview.innerHTML = '';
+  overview.style.display = 'block';
+  document.getElementById('schedDetail').style.display = 'none';
+  document.getElementById('schedBackBtn').style.display = 'none';
+
+  if (LIVE_RESOURCES.length === 0 || LIVE_JOBS.length === 0) {
+    overview.innerHTML = '<div class="card" style="text-align:center;color:var(--tmu);padding:30px">Connect to Kinetic and pull data first.</div>';
+    return;
+  }
+
+  // Build ops by group
+  const allOps = [];
+  WF_JOBS.forEach(j => (j.operations || []).forEach(op => {
+    if (!op.OpComplete) allOps.push({...op, _job: j});
+  }));
+
+  const opsByGroup = {};
+  allOps.forEach(op => {
+    const grp = op.PrimaryResourceGrpID || '';
+    if (grp) { if (!opsByGroup[grp]) opsByGroup[grp] = []; opsByGroup[grp].push(op); }
+  });
+
+  // Render overview grid
+  overview.insertAdjacentHTML('beforeend', `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">`);
+
+  const cardContainer = overview.lastChild;
+
+  LIVE_RESOURCES.forEach(g => {
+    const grpId = g.ResourceGrpID;
+    const resources = g.Resources || [];
+    const isLabor = g.InputType === 'L';
+    const grpOps = opsByGroup[grpId] || [];
+
+    // Calculate capacity
+    const totalCapacity = getGroupCapacity(grpId, resources);
+    const totalLoad = grpOps.reduce((s, op) => s + (op.EstProdHours || 0) + (op.EstSetHours || 0), 0);
+    const utilPct = totalCapacity > 0 ? Math.round((totalLoad / totalCapacity) * 100) : 0;
+
+    // Urgency: jobs due within horizon
+    const urgentOps = grpOps.filter(op => {
+      const dl = op._job?.dueDate ? Math.ceil((new Date(op._job.dueDate) - new Date()) / 86400000) : 99;
+      return dl <= SCHED_HORIZON;
+    });
+
+    // Status color
+    let statusColor, statusBg, statusLabel, barColor;
+    if (utilPct > 100) { statusColor = 'var(--red)'; statusBg = 'var(--rs)'; statusLabel = 'OVERLOADED'; barColor = 'var(--red)'; }
+    else if (utilPct > 90) { statusColor = 'var(--orange)'; statusBg = 'var(--os)'; statusLabel = 'NEAR CAPACITY'; barColor = 'var(--orange)'; }
+    else if (utilPct > 70) { statusColor = 'var(--yellow)'; statusBg = 'var(--ys)'; statusLabel = 'MODERATE'; barColor = 'var(--yellow)'; }
+    else { statusColor = 'var(--green)'; statusBg = 'var(--gs)'; statusLabel = 'AVAILABLE'; barColor = 'var(--green)'; }
+
+    const borderColor = utilPct > 100 ? 'var(--red)' : utilPct > 90 ? 'var(--orange)' : utilPct > 70 ? 'var(--yellow)' : 'var(--teal)';
+    const needsAttention = utilPct > 90 || urgentOps.length > 3;
+
+    cardContainer.insertAdjacentHTML('beforeend', `
+      <div class="card" style="border-top:3px solid ${borderColor};cursor:pointer;transition:transform .1s" onclick="schedDrillIn('${grpId}')" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
+          <div>
+            <div style="font-size:15px;font-weight:700">${g.Description || grpId}</div>
+            <div style="font-size:11px;color:var(--tmu)">${grpId} · ${resources.length} ${isLabor ? 'workers' : 'machines'} · ${grpOps.length} ops queued</div>
+          </div>
+          ${needsAttention ? '<span style="font-size:16px">⚠️</span>' : ''}
+        </div>
+
+        <!-- Capacity bar -->
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+            <span style="font-size:22px;font-weight:700;color:${statusColor}">${utilPct}%</span>
+            <span class="badge" style="background:${statusBg};color:${statusColor};font-size:10px">${statusLabel}</span>
+          </div>
+          <div style="height:12px;background:var(--bl);border-radius:6px;overflow:hidden;position:relative">
+            <div style="width:${Math.min(utilPct, 100)}%;height:100%;background:${barColor};border-radius:6px;transition:width .3s"></div>
+            ${utilPct > 100 ? `<div style="position:absolute;right:4px;top:1px;font-size:8px;font-weight:700;color:var(--red)">${utilPct}%</div>` : ''}
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:var(--tmu)">
+            <span>${totalLoad.toFixed(1)}h loaded</span>
+            <span>${totalCapacity.toFixed(0)}h capacity (${SCHED_HORIZON}d)</span>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">
+          <div style="text-align:center;padding:6px;background:var(--sa);border-radius:4px">
+            <div style="font-size:16px;font-weight:700;color:var(--tx)">${grpOps.length}</div>
+            <div style="font-size:9px;color:var(--tmu)">Total Ops</div>
+          </div>
+          <div style="text-align:center;padding:6px;background:var(--sa);border-radius:4px">
+            <div style="font-size:16px;font-weight:700;color:${urgentOps.length > 0 ? 'var(--red)' : 'var(--tx)'}">${urgentOps.length}</div>
+            <div style="font-size:9px;color:var(--tmu)">Due in ${SCHED_HORIZON}d</div>
+          </div>
+          <div style="text-align:center;padding:6px;background:var(--sa);border-radius:4px">
+            <div style="font-size:16px;font-weight:700;color:var(--tx)">${resources.length}</div>
+            <div style="font-size:9px;color:var(--tmu)">${isLabor ? 'Workers' : 'Machines'}</div>
+          </div>
+        </div>
+
+        <div style="font-size:11px;color:var(--teal);font-weight:600;text-align:center;padding:4px;border-top:1px solid var(--bl)">Click to drill in →</div>
+      </div>
+    `);
+  });
+
+  overview.insertAdjacentHTML('beforeend', '</div>');
+}
+
+function schedDrillIn(grpId) {
+  SCHED_EXPANDED = grpId;
+  const detail = document.getElementById('schedDetail');
+  document.getElementById('schedOverview').style.display = 'none';
+  detail.style.display = 'block';
+  document.getElementById('schedBackBtn').style.display = 'block';
+  detail.innerHTML = '';
+
+  const group = LIVE_RESOURCES.find(g => g.ResourceGrpID === grpId);
+  if (!group) { detail.innerHTML = '<div class="card">Group not found</div>'; return; }
+
+  const resources = group.Resources || [];
+  const isLabor = group.InputType === 'L';
+
+  // Get all ops for this group
+  const grpOps = [];
+  WF_JOBS.forEach(j => (j.operations || []).forEach(op => {
+    if (!op.OpComplete && (op.PrimaryResourceGrpID === grpId)) {
+      grpOps.push({...op, _job: j});
+    }
+  }));
+
+  const totalCapacity = getGroupCapacity(grpId, resources);
+  const totalLoad = grpOps.reduce((s, op) => s + (op.EstProdHours || 0) + (op.EstSetHours || 0), 0);
+  const utilPct = totalCapacity > 0 ? Math.round((totalLoad / totalCapacity) * 100) : 0;
+  let statusColor = utilPct > 100 ? 'var(--red)' : utilPct > 90 ? 'var(--orange)' : utilPct > 70 ? 'var(--yellow)' : 'var(--green)';
+
+  // Header
+  detail.insertAdjacentHTML('beforeend', `
+    <div class="card" style="border-top:3px solid ${statusColor};margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+        <div>
+          <div style="font-size:20px;font-weight:700">${group.Description || grpId}</div>
+          <div style="font-size:12px;color:var(--tmu)">${grpId} · ${resources.length} ${isLabor ? 'workers' : 'machines'} · ${grpOps.length} active operations · ${SCHED_HORIZON}-day horizon</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:28px;font-weight:700;color:${statusColor};line-height:1">${utilPct}%</div>
+          <div style="font-size:10px;color:var(--tmu)">utilization</div>
+        </div>
+      </div>
+      <div style="height:16px;background:var(--bl);border-radius:8px;overflow:hidden;margin-bottom:8px">
+        <div style="width:${Math.min(utilPct, 100)}%;height:100%;background:${statusColor};border-radius:8px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--tmu)">
+        <span>${totalLoad.toFixed(1)}h loaded across ${grpOps.length} operations</span>
+        <span>${totalCapacity.toFixed(0)}h total capacity (${resources.length} × 8h × ${SCHED_HORIZON}d)</span>
+      </div>
+    </div>
+  `);
+
+  // Individual resources
+  detail.insertAdjacentHTML('beforeend', `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:14px" id="schedResGrid"></div>`);
+  const resGrid = document.getElementById('schedResGrid');
+
+  // For each resource, try to estimate its share of load
+  // Since ops aren't assigned to individual resources, distribute evenly
+  const perResLoad = resources.length > 0 ? totalLoad / resources.length : totalLoad;
+  const perResCap = 8 * SCHED_HORIZON;
+
+  resources.forEach((r, rIdx) => {
+    const resId = r.ResourceID;
+    const resDesc = r.Description || resId;
+    const resUtil = perResCap > 0 ? Math.round((perResLoad / perResCap) * 100) : 0;
+    const resColor = resUtil > 100 ? 'var(--red)' : resUtil > 90 ? 'var(--orange)' : resUtil > 70 ? 'var(--yellow)' : 'var(--green)';
+
+    // Show a subset of jobs for this resource (distribute ops round-robin)
+    const resOps = grpOps.filter((op, idx) => resources.length <= 1 || (idx % resources.length) === rIdx);
+    const resLoadActual = resOps.reduce((s, op) => s + (op.EstProdHours || 0) + (op.EstSetHours || 0), 0);
+    const resUtilActual = perResCap > 0 ? Math.round((resLoadActual / perResCap) * 100) : 0;
+    const actualColor = resUtilActual > 100 ? 'var(--red)' : resUtilActual > 90 ? 'var(--orange)' : resUtilActual > 70 ? 'var(--yellow)' : 'var(--green)';
+
+    // Build job timeline
+    const jobRows = resOps.sort((a, b) => {
+      const da = a._job?.dueDate ? new Date(a._job.dueDate) : new Date('2099-01-01');
+      const db = b._job?.dueDate ? new Date(b._job.dueDate) : new Date('2099-01-01');
+      return da - db;
+    }).map(op => {
+      const j = op._job || {};
+      const dl = j.dueDate ? Math.ceil((new Date(j.dueDate) - new Date()) / 86400000) : 99;
+      const dlColor = dl <= 3 ? 'var(--red)' : dl <= 7 ? 'var(--orange)' : dl <= 14 ? 'var(--yellow)' : 'var(--tdi)';
+      const hrs = ((op.EstProdHours || 0) + (op.EstSetHours || 0)).toFixed(1);
+      const priLabel = PRI_LABELS[j.priority] || j.priority || '';
+      const priColor = PRI_COLORS[priLabel] || 'var(--sa);color:var(--tmu)';
+      // Bar width proportional to hours (max bar = longest op)
+      const maxHrs = Math.max(...resOps.map(o => (o.EstProdHours||0) + (o.EstSetHours||0)), 1);
+      const barW = Math.max(((parseFloat(hrs) / maxHrs) * 100), 5);
+      const barCol = dl <= 3 ? 'var(--red)' : dl <= 7 ? 'var(--orange)' : 'var(--teal)';
+
+      return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--bl);font-size:11px;cursor:pointer" onclick="selectJob('${op.JobNum}')">
+        <span class="mono" style="font-weight:600;color:var(--teal);min-width:68px">${op.JobNum}</span>
+        <span style="min-width:55px;color:var(--tmu);font-size:10px">${op.OpCode || ''}</span>
+        <div style="flex:1;display:flex;align-items:center;gap:4px">
+          <div style="height:14px;width:${barW}%;background:${barCol};border-radius:3px;min-width:4px"></div>
+          <span class="mono" style="font-size:10px;color:var(--tmu)">${hrs}h</span>
+        </div>
+        <span class="badge" style="background:${priColor};font-size:9px;padding:1px 6px">${priLabel}</span>
+        <span style="font-size:10px;font-weight:700;color:${dlColor};min-width:30px;text-align:right">${dl}d</span>
+      </div>`;
+    }).join('');
+
+    resGrid.insertAdjacentHTML('beforeend', `
+      <div class="card" style="border-left:4px solid ${actualColor}">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+          <div>
+            <div style="font-size:14px;font-weight:700">${resDesc}</div>
+            <div style="font-size:11px;color:var(--tmu)">${resId} · ${resOps.length} ops · ${resLoadActual.toFixed(1)}h loaded</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:20px;font-weight:700;color:${actualColor}">${resUtilActual}%</div>
+          </div>
+        </div>
+        <div style="height:10px;background:var(--bl);border-radius:5px;overflow:hidden;margin-bottom:10px">
+          <div style="width:${Math.min(resUtilActual, 100)}%;height:100%;background:${actualColor};border-radius:5px"></div>
+        </div>
+        <div style="max-height:250px;overflow-y:auto">
+          ${jobRows || '<div style="font-size:12px;color:var(--tdi);font-style:italic;padding:8px">No operations queued</div>'}
+        </div>
+      </div>
+    `);
+  });
+
+  // AI Suggestions for this group
+  const suggestions = [];
+
+  // Overloaded
+  if (utilPct > 100) {
+    const overHrs = (totalLoad - totalCapacity).toFixed(1);
+    suggestions.push({icon:'●',color:'var(--red)',text:`This work center is overloaded by ${overHrs}h in the ${SCHED_HORIZON}-day window. ${resources.length > 1 ? 'Check load balance across machines — one may be idle while another is slammed.' : 'Consider overtime, outsourcing, or pushing lower-priority jobs beyond the horizon.'}`});
+  }
+
+  // Sister machine balancing
+  if (resources.length >= 2) {
+    suggestions.push({icon:'◆',color:'var(--teal)',text:`${resources.length} ${isLabor ? 'workers' : 'machines'} share this queue. If load is uneven, drag jobs between resources in Job Entry > Operations > Resource to balance. Sister machines can run identical operations at the same cost.`});
+  }
+
+  // Find alternative groups that could run same op codes
+  const opCodesHere = [...new Set(grpOps.map(op => op.OpCode).filter(Boolean))];
+  const altGroups = [];
+  LIVE_RESOURCES.forEach(g2 => {
+    if (g2.ResourceGrpID === grpId) return;
+    const g2Ops = [];
+    WF_JOBS.forEach(j => (j.operations||[]).forEach(op => {
+      if (!op.OpComplete && op.PrimaryResourceGrpID === g2.ResourceGrpID) g2Ops.push(op);
+    }));
+    const g2Cap = getGroupCapacity(g2.ResourceGrpID, g2.Resources || []);
+    const g2Load = g2Ops.reduce((s,op) => s + (op.EstProdHours||0) + (op.EstSetHours||0), 0);
+    const g2Util = g2Cap > 0 ? Math.round((g2Load / g2Cap) * 100) : 0;
+    if (g2Util < 70) altGroups.push({id: g2.ResourceGrpID, desc: g2.Description, util: g2Util, cap: g2Cap - g2Load});
+  });
+
+  if (utilPct > 80 && altGroups.length > 0) {
+    const best = altGroups.sort((a,b) => a.util - b.util)[0];
+    suggestions.push({icon:'▲',color:'var(--orange)',text:`${grpId} is at ${utilPct}% — consider offloading compatible operations to "${best.desc}" (${best.id}) which is only at ${best.util}% with ${best.cap.toFixed(0)}h available capacity. Review if the operation can run on that work center at comparable cost.`});
+  }
+
+  // Urgent jobs
+  const urgentOps = grpOps.filter(op => {
+    const dl = op._job?.dueDate ? Math.ceil((new Date(op._job.dueDate) - new Date()) / 86400000) : 99;
+    return dl <= 3;
+  });
+  if (urgentOps.length > 0) {
+    const urgentJobs = [...new Set(urgentOps.map(op => op.JobNum))];
+    suggestions.push({icon:'●',color:'var(--red)',text:`${urgentJobs.length} job(s) due within 3 days: ${urgentJobs.join(', ')}. These should be scheduled first. Set priority to IMMED to ensure forward scheduling puts them at the front of the queue.`});
+  }
+
+  if (suggestions.length > 0) {
+    detail.insertAdjacentHTML('beforeend', `
+      <div class="card" style="border-left:3px solid var(--purple);margin-top:16px">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--purple);margin-bottom:10px;display:flex;align-items:center;gap:4px">
+          <span style="font-size:14px">✦</span> AI Scheduling Suggestions for ${group.Description || grpId}
+        </div>
+        ${suggestions.map(s => `
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 10px;margin-bottom:6px;background:var(--sa);border-radius:4px;border-left:3px solid ${s.color};font-size:12px;line-height:1.6">
+            <span style="color:${s.color};font-weight:700;flex-shrink:0;margin-top:2px">${s.icon}</span>
+            <span style="color:var(--tx)">${s.text}</span>
+          </div>
+        `).join('')}
+      </div>
+    `);
+  }
+}
+
+// ═══ LOAD ALL ═══
+async function loadAllData() {
+  if (!CONFIG.server) {
+    CONFIG.server = document.getElementById('cfgServer').value.replace(/\/+$/, '');
+    CONFIG.company = document.getElementById('cfgCompany').value.trim();
+    CONFIG.user = document.getElementById('cfgUser').value.trim();
+    CONFIG.pass = document.getElementById('cfgPass').value;
+    CONFIG.apiKey = document.getElementById('cfgApiKey').value.trim();
+  }
+  if (!CONFIG.server || !CONFIG.company) {
+    alert('Enter Server URL and Company ID on the Connect tab first');
+    return;
+  }
+  CONNECTED = true;
+  await fetchJobs();
+  await fetchWorkflow();
+  await fetchResourceLoad();
+  runAIEngine();
+  renderScheduling();
+  renderDemand();
+  const activeTab = document.querySelector('.tab.active');
+  if (!activeTab || activeTab.getAttribute('data-tab') === 'connect') {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tc').forEach(t => t.classList.remove('active'));
+    document.querySelector('[data-tab="jobs"]').classList.add('active');
+    document.getElementById('tab-jobs').classList.add('active');
+  }
+}
+
+// ═══ RENDER JOBS ═══
+const PRI_LABELS = {0:'Normal','HIGH':'High','IMMED':'Immediate','LOW':'Low','NORMAL':'Normal','VHIGH':'Very High','VLOW':'Very Low'};
+const PRI_COLORS = {'Very High':'var(--rs);color:var(--red)','High':'var(--os);color:var(--orange)','Immediate':'var(--rs);color:var(--red)','Normal':'var(--ts);color:var(--teal)','Low':'var(--sa);color:var(--tmu)','Very Low':'var(--sa);color:var(--tmu)'};
+
+function renderJobs(jobs) {
+  const tb = document.getElementById('jobsTable');
+  tb.innerHTML = '';
+  document.getElementById('jobCount').textContent = jobs.length + ' jobs';
+  document.getElementById('jobsEmpty').style.display = jobs.length === 0 ? 'block' : 'none';
+
+  jobs.forEach(j => {
+    const dl = j.dueDate ? Math.ceil((new Date(j.dueDate) - new Date()) / 86400000) : 99;
+    const stColors = {'On Hold':'var(--os);color:var(--orange)','Released':'var(--gs);color:var(--green)','Engineered':'var(--ts);color:var(--teal)','Open':'var(--sa);color:var(--tmu)','In Progress':'var(--gs);color:var(--green)'};
+    const stColor = stColors[j.status] || 'var(--sa);color:var(--tmu)';
+    const priLabel = typeof j.priority === 'number' ? (PRI_LABELS[j.priority] || String(j.priority)) : j.priority;
+    const priColor = PRI_COLORS[priLabel] || 'var(--sa);color:var(--tmu)';
+
+    tb.insertAdjacentHTML('beforeend', `
+      <tr onclick="selectJob('${j.id}')" style="cursor:pointer" data-job="${j.id}" data-part="${(j.part||'').toLowerCase()}" data-status="${j.status.toLowerCase()}" data-pri="${priLabel.toLowerCase()}">
+        <td class="mono" style="font-weight:600;color:var(--teal)">${j.id}</td>
+        <td style="font-weight:600">${j.part || '—'}</td>
+        <td class="mono">${j.qty}</td>
+        <td><span class="mono">${j.dueDate}</span> <span style="font-size:10px;font-weight:600;margin-left:4px;color:${dl<=5?'var(--red)':dl<=10?'var(--yellow)':'var(--tdi)'}">${dl}d</span></td>
+        <td><span class="badge" style="background:${priColor}">${priLabel}</span></td>
+        <td><span class="badge" style="background:${stColor}">${j.status}</span></td>
+        <td>
+          <button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="event.stopPropagation();quickAction('${j.id}','priorityHigh')">⬆ Expedite</button>
+          <button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="event.stopPropagation();quickAction('${j.id}','${j.held?'release':'hold'}')">${j.held?'Release':'Hold'}</button>
+          <button class="btn btn-outline" style="font-size:10px;padding:3px 8px" onclick="event.stopPropagation();quickAction('${j.id}','scheduleForward')">▶ Sched</button>
+        </td>
+      </tr>
+    `);
+  });
+}
+
+function selectJob(jobNum) {
+  document.getElementById('actJob').value = jobNum;
+  document.querySelectorAll('#jobsTable tr').forEach(r => r.style.background = '');
+  const row = document.querySelector('#jobsTable tr[data-job="'+jobNum+'"]');
+  if (row) row.style.background = 'var(--tl)';
+}
+
+function filterJobs() {
+  const q = document.getElementById('jobFilter').value.toLowerCase().trim();
+  const rows = document.querySelectorAll('#jobsTable tr');
+  let visible = 0;
+  rows.forEach(r => {
+    const match = !q || (r.dataset.job||'').includes(q) || (r.dataset.part||'').includes(q) || (r.dataset.status||'').includes(q) || (r.dataset.pri||'').includes(q);
+    r.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  document.getElementById('jobCount').textContent = visible + ' of ' + rows.length + ' jobs';
+}
+
+function toggleJobScope() {
+  showAllJobs = !showAllJobs;
+  const btn = document.getElementById('btnJobScope');
+  btn.textContent = showAllJobs ? 'Showing: All 2026 Jobs' : 'Showing: Released 2026 Only';
+  btn.className = showAllJobs ? 'btn btn-teal' : 'btn btn-outline';
+  fetchJobs();
+}
+
+// ═══ AI ENGINE ═══
+function runAIEngine() {
+  const list = document.getElementById('recsList');
+  list.innerHTML = '';
+  const recs = [];
+  const today = new Date();
+
+  LIVE_JOBS.forEach(j => {
+    if (!j.dueDate) return;
+    const dl = Math.ceil((new Date(j.dueDate) - today) / 86400000);
+    if (dl <= 7 && dl >= 0) {
+      recs.push({
+        sev: dl <= 3 ? 'critical' : 'high', cat: 'Due Date Risk',
+        title: `${j.id} — ${j.part} due in ${dl} days`,
+        body: `Job ${j.id} is due ${j.dueDate} (${dl} calendar days). Priority is currently ${j.priority}. ${dl <= 3 ? 'This job needs immediate attention.' : 'Review capacity to ensure on-time delivery.'}`,
+        action: `Expedite ${j.id}`, jobId: j.id
+      });
+    }
+    if (j.status === 'On Hold') {
+      recs.push({
+        sev: 'info', cat: 'Held Job',
+        title: `${j.id} — ${j.part} is on hold`,
+        body: `This job is currently held. If the hold is resolved, release it to free capacity in the schedule.`,
+        action: `Release ${j.id}`, jobId: j.id
+      });
+    }
+  });
+
+  LIVE_RESOURCES.forEach(g => {
+    const sisterPairs = (g.Resources || []).filter(r => r.LinkedResourceID || r.LinkedResource);
+    if (sisterPairs.length > 0) {
+      recs.push({
+        sev: 'info', cat: 'Sister Machine',
+        title: `${g.Description || g.ResourceGrpID} has sister machine pair`,
+        body: `${sisterPairs.map(r => r.ResourceID + ' ↔ ' + (r.LinkedResourceID||r.LinkedResource)).join(', ')}. Verify load is balanced.`,
+        action: null
+      });
+    }
+    if (g.InputType === 'L') {
+      const headcount = (g.Resources || []).reduce((s, r) => s + (r.NumSimultaneous || r.NumberOfMachines || 1), 0);
+      recs.push({
+        sev: 'medium', cat: 'Labor Constraint',
+        title: `${g.Description} is labor-constrained (${headcount} workers)`,
+        body: `This work center schedules against headcount, not machine hours. Monitor utilization closely — any upstream delay cascades through this bottleneck.`,
+        action: null
+      });
+    }
+  });
+
+  document.getElementById('recCount').textContent = recs.length + ' recommendations';
+
+  if (recs.length === 0) {
+    list.innerHTML = '<div class="card" style="text-align:center;color:var(--tmu);padding:30px">Pull data from Kinetic first to generate recommendations.</div>';
+    return;
+  }
+
+  recs.sort((a, b) => {
+    const o = { critical: 0, high: 1, medium: 2, info: 3 };
+    return (o[a.sev] || 9) - (o[b.sev] || 9);
+  });
+
+  recs.forEach(r => {
+    const sevBadge = { critical: 'background:var(--rs);color:var(--red)', high: 'background:var(--os);color:var(--orange)', medium: 'background:var(--ys);color:var(--yellow)', info: 'background:var(--ts);color:var(--teal)' }[r.sev];
+    const sevIcon = { critical: '●', high: '▲', medium: '◆', info: '○' }[r.sev];
+    const borderColors = { critical: 'var(--red)', high: 'var(--orange)', medium: 'var(--yellow)', info: 'var(--teal)' };
+    const actionBtn = r.action && r.jobId
+      ? `<button class="btn btn-teal" style="font-size:11px;padding:5px 12px;margin-top:auto;width:100%" onclick="event.stopPropagation();quickAction('${r.jobId}','priorityHigh')">⬆ ${r.action}</button>`
+      : '';
+    const clickHandler = r.jobId ? ` onclick="showJobDetail('${r.jobId}')"` : '';
+    list.insertAdjacentHTML('beforeend', `
+      <div${clickHandler} style="background:var(--sf);border:1px solid var(--bd);border-top:3px solid ${borderColors[r.sev]};border-radius:6px;padding:14px;display:flex;flex-direction:column;min-height:160px;${r.jobId?'cursor:pointer':''}">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+          <span class="badge" style="${sevBadge};font-size:10px">${sevIcon} ${r.sev.toUpperCase()}</span>
+          <span class="badge" style="background:var(--sa);color:var(--tmu);font-size:10px;border:1px solid var(--bd)">${r.cat}</span>
+        </div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;line-height:1.4">${r.title}</div>
+        <div style="font-size:12px;color:var(--tmu);line-height:1.6;flex:1">${r.body}</div>
+        ${actionBtn}
+      </div>
+    `);
+  });
+}
+
+// ═══ ACTIONS ═══
+async function quickAction(jobNum, action) {
+  document.getElementById('actJob').value = jobNum;
+  await runAction(action);
+}
+
+async function runAction(action) {
+  const jobNum = document.getElementById('actJob').value.trim();
+  const result = document.getElementById('actionResult');
+
+  if (!jobNum) {
+    result.innerHTML = '<div class="card" style="border-left:3px solid var(--red)"><span style="color:var(--red);font-weight:600">Enter a job number above first</span></div>';
+    return;
+  }
+  if (!CONNECTED) {
+    result.innerHTML = '<div class="card" style="border-left:3px solid var(--red)"><span style="color:var(--red);font-weight:600">Connect to Kinetic first</span></div>';
+    return;
+  }
+
+  const labels = {
+    scheduleForward:'Schedule Forward', scheduleBackward:'Schedule Backward',
+    unschedule:'Remove from Schedule', priorityVeryHigh:'Priority → Very High',
+    priorityHigh:'Priority → High', priorityImmediate:'Priority → Immediate (Forward Schedule)',
+    priorityNormal:'Priority → Normal', priorityLow:'Priority → Low',
+    hold:'Put on Hold', release:'Release from Hold',
+  };
+
+  result.innerHTML = `<div class="card" style="text-align:center;padding:20px"><div class="spinner"></div><div style="margin-top:8px;color:var(--tmu)">Pushing "${labels[action] || action}" to Kinetic for job ${jobNum}...</div></div>`;
+
+  try {
+    let msg = '';
+    let detail = '';
+
+    // Helper: Get job Company for PATCH URL
+    async function getJobCompany() {
+      const data = await kineticAPI('GET', `Erp.BO.JobEntrySvc/JobEntries?$filter=JobNum eq '${jobNum}'&$top=1`);
+      if (!data.value?.length) throw new Error('Job not found');
+      log('info', 'DEBUG', 'Job SchedCode', data.value[0].SchedCode || 'not set');
+      return data.value[0];
+    }
+
+    // Helper: Write to Kinetic via Automation Studio webhook
+    const WEBHOOKS = {
+      updatePriority: 'https://webhooks.workato.com/webhooks/rest/6a549569-6fe2-4070-8319-a420db92eddc/update-job',
+      // Add more webhook URLs here as you create recipes:
+      // holdJob: 'https://webhooks.workato.com/webhooks/rest/...',
+      // scheduleJob: 'https://webhooks.workato.com/webhooks/rest/...',
+    };
+
+    async function callWebhook(webhookUrl, payload) {
+      log('info', 'WEBHOOK', 'POST', JSON.stringify(payload));
+      const resp = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const text = await resp.text();
+      if (!resp.ok) {
+        log('err', 'WEBHOOK', resp.status + '', text.substring(0, 200));
+        throw new Error('Webhook failed: ' + text.substring(0, 200));
+      }
+      log('ok', 'WEBHOOK', 'Success', text.substring(0, 200));
+      return text;
+    }
+
+    // For fields that go through Automation Studio
+    async function patchJobField(fieldName, fieldValue) {
+      const before = await kineticAPI('GET', `Erp.BO.JobEntrySvc/JobEntries?$filter=JobNum eq '${jobNum}'&$top=1`);
+      const oldVal = before.value?.[0]?.[fieldName];
+      log('info', 'DEBUG', `BEFORE: ${fieldName}`, JSON.stringify(oldVal));
+
+      await callWebhook(WEBHOOKS.updatePriority, { jobNum: jobNum, newPriority: fieldValue });
+
+      // Give Kinetic a moment to process, then verify
+      await new Promise(r => setTimeout(r, 1500));
+      const after = await kineticAPI('GET', `Erp.BO.JobEntrySvc/JobEntries?$filter=JobNum eq '${jobNum}'&$top=1`);
+      const newVal = after.value?.[0]?.[fieldName];
+      log('info', 'DEBUG', `AFTER: ${fieldName}`, JSON.stringify(newVal));
+
+      if (JSON.stringify(newVal) !== JSON.stringify(oldVal)) {
+        log('ok', 'VERIFY', 'VALUE CHANGED', `${fieldName}: ${JSON.stringify(oldVal)} → ${JSON.stringify(newVal)}`);
+      } else {
+        log('err', 'VERIFY', 'May not have changed', `${fieldName} still = ${JSON.stringify(oldVal)}`);
+      }
+      return { [fieldName]: oldVal };
+    }
+
+    if (action === 'scheduleForward') {
+      await callWebhook(WEBHOOKS.updatePriority, { jobNum: jobNum, newPriority: 'IMMED' });
+      msg = 'Schedule Forward — Priority set to Immediate';
+      detail = 'SchedCode changed to IMMED (Priority Factor 1,000). Kinetic auto-triggers forward scheduling from the start date.';
+
+    } else if (action === 'scheduleBackward') {
+      await callWebhook(WEBHOOKS.updatePriority, { jobNum: jobNum, newPriority: 'NORMAL' });
+      msg = 'Schedule Backward — Priority set to Normal';
+      detail = 'SchedCode changed to NORMAL with Schedule Backwards enabled. Kinetic schedules backward from the due date.';
+
+    } else if (action === 'unschedule') {
+      await callWebhook(WEBHOOKS.updatePriority, { jobNum: jobNum, newPriority: 'LOW' });
+      msg = 'Deprioritized — Priority set to Low';
+      detail = 'SchedCode changed to LOW (Priority Factor 10). Job moves to bottom of scheduling queue.';
+
+    } else if (action.startsWith('priority')) {
+      const priMap = {
+        priorityVeryHigh: 'VHIGH', priorityHigh: 'HIGH',
+        priorityImmediate: 'IMMED',
+        priorityNormal: 'NORMAL', priorityLow: 'LOW',
+      };
+      const priLabels = {VHIGH:'Very High',HIGH:'High',IMMED:'Immediate',NORMAL:'Normal',LOW:'Low',VLOW:'Very Low'};
+      const newPri = priMap[action] || 'HIGH';
+      const result = await patchJobField('SchedCode', newPri);
+      msg = `Priority → ${priLabels[newPri] || newPri}`;
+      detail = newPri === 'IMMED'
+        ? 'Kinetic will auto-trigger forward scheduling for this job.'
+        : 'Priority updated in Kinetic. Reschedule to see the change take effect.';
+
+    } else if (action === 'hold') {
+      await patchJobField('JobHeld', true);
+      msg = 'Job Placed on Hold';
+      detail = 'Scheduling blocks released. Capacity freed for other jobs. Materials remain allocated.';
+
+    } else if (action === 'release') {
+      await patchJobField('JobHeld', false);
+      msg = 'Job Released from Hold';
+      detail = 'Job is eligible for scheduling again. Use Schedule Forward or Backward to place it back on resources.';
+    }
+
+    result.innerHTML = `<div class="card" style="border-left:3px solid var(--green);margin-top:8px">
+      <div style="font-size:13px;font-weight:700;color:var(--green)">✓ ${msg}</div>
+      <div style="font-size:12px;color:var(--tmu);margin-top:4px">${detail}</div>
+      <div style="font-size:11px;color:var(--tdi);margin-top:6px">Job ${jobNum} updated in Kinetic. Open Job Entry to verify, or refresh the Jobs tab.</div>
+    </div>`;
+
+    setTimeout(() => fetchJobs(), 1500);
+  } catch (err) {
+    if (err.message !== 'CORS_BLOCKED') {
+      result.innerHTML = `<div class="card" style="border-left:3px solid var(--red)"><span style="color:var(--red);font-weight:600">Error: ${err.message.substring(0, 200)}</span></div>`;
+    }
+  }
+}
+
+// ═══ DEMO DATA FALLBACK ═══
+function loadDemoData() {
+  LIVE_JOBS = [
+    {id:"J-4821",part:"Aerospace Bracket Assy",qty:48,dueDate:"2026-04-14",priority:1,status:"In Progress",held:false},
+    {id:"J-4835",part:"Medical Device Housing",qty:200,dueDate:"2026-04-10",priority:1,status:"In Progress",held:false},
+    {id:"J-4840",part:"Robotics Arm Shaft",qty:24,dueDate:"2026-04-18",priority:2,status:"In Progress",held:false},
+    {id:"J-4852",part:"EV Enclosure Panel",qty:100,dueDate:"2026-04-12",priority:1,status:"In Progress",held:false},
+    {id:"J-4860",part:"Drone Motor Mount",qty:500,dueDate:"2026-04-22",priority:3,status:"In Progress",held:false},
+    {id:"J-4871",part:"Precision Valve Body",qty:36,dueDate:"2026-04-16",priority:2,status:"In Progress",held:false},
+  ];
+  LIVE_RESOURCES = [
+    {ResourceGrpID:"WC-5AX",Description:"5-Axis Machining",InputType:"M",NumberOfMachines:2,Resources:[
+      {ResourceID:"R01",Description:"Haas VF-4SS #1",Inactive:false,ProdHrsPerDay:16,LinkedResourceID:"R02",NumSimultaneous:1},
+      {ResourceID:"R02",Description:"Haas VF-4SS #2",Inactive:false,ProdHrsPerDay:16,LinkedResourceID:"R01",NumSimultaneous:1},
+    ]},
+    {ResourceGrpID:"WC-TURN",Description:"CNC Turning",InputType:"M",NumberOfMachines:2,Resources:[
+      {ResourceID:"R03",Description:"DMG Mori NLX 2500",Inactive:false,ProdHrsPerDay:20,LinkedResourceID:null,NumSimultaneous:1},
+      {ResourceID:"R04",Description:"Mazak QTN-200",Inactive:false,ProdHrsPerDay:16,LinkedResourceID:null,NumSimultaneous:1},
+    ]},
+    {ResourceGrpID:"WC-MJF",Description:"Additive / MJF",InputType:"M",NumberOfMachines:2,Resources:[
+      {ResourceID:"R05",Description:"HP MJF 5210 #1",Inactive:false,ProdHrsPerDay:24,LinkedResourceID:"R06",NumSimultaneous:1},
+      {ResourceID:"R06",Description:"HP MJF 5210 #2",Inactive:false,ProdHrsPerDay:24,LinkedResourceID:"R05",NumSimultaneous:1},
+    ]},
+    {ResourceGrpID:"WC-DEBR",Description:"Deburring",InputType:"L",NumberOfMachines:0,Resources:[
+      {ResourceID:"R10",Description:"Deburr Team",Inactive:false,ProdHrsPerDay:8,LinkedResourceID:null,NumSimultaneous:3},
+    ]},
+    {ResourceGrpID:"WC-QC",Description:"Quality / Inspection",InputType:"L",NumberOfMachines:0,Resources:[
+      {ResourceID:"R11",Description:"QC Inspectors",Inactive:false,ProdHrsPerDay:8,LinkedResourceID:null,NumSimultaneous:2},
+    ]},
+    {ResourceGrpID:"WC-ASSY",Description:"Assembly",InputType:"L",NumberOfMachines:0,Resources:[
+      {ResourceID:"R12",Description:"Assembly Crew",Inactive:false,ProdHrsPerDay:8,LinkedResourceID:null,NumSimultaneous:4},
+    ]},
+  ];
+
+  renderJobs(LIVE_JOBS);
+  renderResources(LIVE_RESOURCES);
+  runAIEngine();
+
+  document.getElementById('headerStatus').innerHTML = '<span class="badge" style="background:var(--ys);color:var(--yellow)"><span class="status-dot" style="background:var(--yellow)"></span> Demo Data</span>';
+  document.getElementById('headerEnv').textContent = 'UPTIVE Demo (static data)';
+
+  document.querySelector('[data-tab="jobs"]').click();
+}
+
+// ═══ JOB DETAIL MODAL ═══
+function closeJobDetail() {
+  document.getElementById('jobDetailOverlay').style.display = 'none';
+}
+
+function openInJobEntry(jobNum) {
+  const baseUrl = CONFIG.server || 'https://seiajr8af3.developer.epicor.com/server';
+  const company = CONFIG.company || 'EPIC03';
+  // Generate a unique channelid (UUID v4) — Kinetic requires this to initialize
+  const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+  const url = `${baseUrl}/apps/erp/home/#/view/JCGO3001?channelid=${uuid}&layerVersion=0&baseAppVersion=0&company=${company}&site=MfgSys&pageId=Details&pageChanged=true&KeyFields.JobNum=${jobNum}`;
+  window.open(url, 'KineticJobEntry');
+}
+
+async function showJobDetail(jobNum) {
+  const overlay = document.getElementById('jobDetailOverlay');
+  const content = document.getElementById('jdContent');
+
+  // Find job in loaded data
+  const job = LIVE_JOBS.find(j => j.id === jobNum);
+  const wfJob = WF_JOBS.find(j => j.id === jobNum);
+
+  if (!job) { alert('Job not found'); return; }
+
+  document.getElementById('jdTitle').textContent = `Job ${jobNum} — ${job.part}`;
+  document.getElementById('jdSubtitle').textContent = job.raw?.CommentText || '';
+  content.innerHTML = '<div style="text-align:center;padding:30px"><div class="spinner"></div><div style="margin-top:8px;color:var(--tmu)">Loading job details...</div></div>';
+  overlay.style.display = 'block';
+
+  try {
+    // Fetch full job details
+    const jobData = await kineticAPI('GET', `Erp.BO.JobEntrySvc/JobEntries?$filter=JobNum eq '${jobNum}'&$top=1`);
+    const fullJob = jobData.value?.[0] || job.raw || {};
+
+    // Determine MTS vs MTO
+    const jobType = fullJob.JobType || '';
+    const isMTO = jobType === 'MFG-MTO' || jobType === 'MTO' || (fullJob.QuoteNum && fullJob.QuoteNum > 0);
+    const isMTS = !isMTO;
+    const typeLabel = isMTO ? 'Make to Order (MTO)' : 'Make to Stock (MTS)';
+    const typeColor = isMTO ? 'var(--os);color:var(--orange)' : 'var(--ts);color:var(--teal)';
+
+    // Dates
+    const reqDue = (fullJob.ReqDueDate || '').split('T')[0];
+    const schedStart = (fullJob.StartDate || '').split('T')[0];
+    const schedDue = (fullJob.DueDate || '').split('T')[0];
+    const dl = reqDue ? Math.ceil((new Date(reqDue) - new Date()) / 86400000) : 99;
+    const dlColor = dl <= 3 ? 'var(--red)' : dl <= 7 ? 'var(--orange)' : dl <= 14 ? 'var(--yellow)' : 'var(--green)';
+    const priLabel = PRI_LABELS[fullJob.SchedCode] || fullJob.SchedCode || 'Normal';
+
+    // Operations from workflow data
+    const ops = wfJob?.operations || [];
+    let totalEstHrs = 0, totalActHrs = 0, totalEstCost = 0, totalActCost = 0;
+    const opsRows = ops.map(op => {
+      const estH = (op.EstProdHours || 0) + (op.EstSetHours || 0);
+      const actH = (op.ActProdHours || 0) + (op.ActSetupHours || 0);
+      const estC = op.EstLaborCost || op.EstUnitCost || 0;
+      const actC = (op.ActLabCost || 0) + (op.ActBurCost || 0);
+      totalEstHrs += estH; totalActHrs += actH; totalEstCost += estC; totalActCost += actC;
+      const status = op.OpComplete ? '✓ Complete' : '○ Pending';
+      const statusColor = op.OpComplete ? 'var(--green)' : 'var(--tmu)';
+      const resGrp = op.PrimaryResourceGrpID || op.ResourceGrpID || '';
+      return `<tr>
+        <td class="mono" style="font-size:11px">${op.OprSeq}</td>
+        <td style="font-weight:600">${op.OpCode || ''}</td>
+        <td style="font-size:11px;color:var(--tmu)">${resGrp}</td>
+        <td class="mono">${estH.toFixed(1)}h</td>
+        <td class="mono">${actH > 0 ? actH.toFixed(1) + 'h' : '—'}</td>
+        <td class="mono">$${estC.toFixed(0)}</td>
+        <td class="mono">${actC > 0 ? '$' + actC.toFixed(0) : '—'}</td>
+        <td style="color:${statusColor};font-size:11px;font-weight:600">${status}</td>
+      </tr>`;
+    }).join('');
+
+    // Material costs
+    const estMatCost = fullJob.EstSubCost || 0;
+    const actMatCost = fullJob.ActSubCost || 0;
+
+    content.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px">
+        <div style="padding:10px;background:var(--sa);border-radius:6px;text-align:center">
+          <div style="font-size:9px;font-weight:600;color:var(--tmu);text-transform:uppercase">Type</div>
+          <div><span class="badge" style="background:${typeColor};font-size:11px">${typeLabel}</span></div>
+        </div>
+        <div style="padding:10px;background:var(--sa);border-radius:6px;text-align:center">
+          <div style="font-size:9px;font-weight:600;color:var(--tmu);text-transform:uppercase">Priority</div>
+          <div style="font-size:14px;font-weight:700">${priLabel}</div>
+        </div>
+        <div style="padding:10px;background:var(--sa);border-radius:6px;text-align:center">
+          <div style="font-size:9px;font-weight:600;color:var(--tmu);text-transform:uppercase">Due Date</div>
+          <div class="mono" style="font-size:14px;font-weight:700;color:${dlColor}">${reqDue || '—'}</div>
+          <div style="font-size:10px;color:${dlColor}">${dl}d remaining</div>
+        </div>
+        <div style="padding:10px;background:var(--sa);border-radius:6px;text-align:center">
+          <div style="font-size:9px;font-weight:600;color:var(--tmu);text-transform:uppercase">Qty</div>
+          <div style="font-size:14px;font-weight:700">${fullJob.ProdQty || job.qty}</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div style="padding:10px;background:var(--sa);border-radius:6px">
+          <div style="font-size:9px;font-weight:600;color:var(--tmu);text-transform:uppercase;margin-bottom:4px">Job Details</div>
+          <div style="font-size:12px;line-height:1.8">
+            <div><span style="color:var(--tmu);width:100px;display:inline-block">Part:</span> <b>${fullJob.PartNum || ''}</b> Rev ${fullJob.RevisionNum || '—'}</div>
+            <div><span style="color:var(--tmu);width:100px;display:inline-block">Description:</span> ${fullJob.PartDescription || ''}</div>
+            <div><span style="color:var(--tmu);width:100px;display:inline-block">Sched Start:</span> <span class="mono">${schedStart && schedStart !== '0001-01-01' ? schedStart : 'Not scheduled'}</span></div>
+            <div><span style="color:var(--tmu);width:100px;display:inline-block">Sched Due:</span> <span class="mono">${schedDue && schedDue !== '0001-01-01' ? schedDue : 'Not scheduled'}</span></div>
+            ${fullJob.DrawNum ? `<div><span style="color:var(--tmu);width:100px;display:inline-block">Drawing:</span> ${fullJob.DrawNum}</div>` : ''}
+          </div>
+        </div>
+        <div style="padding:10px;background:var(--sa);border-radius:6px">
+          <div style="font-size:9px;font-weight:600;color:var(--tmu);text-transform:uppercase;margin-bottom:4px">${isMTO ? 'Order Info' : 'Stock Info'}</div>
+          <div style="font-size:12px;line-height:1.8">
+            ${isMTO && fullJob.QuoteNum ? `<div><span style="color:var(--tmu)">Quote:</span> <b>${fullJob.QuoteNum}-${fullJob.QuoteLine || 0}</b></div>` : ''}
+            <div><span style="color:var(--tmu)">Job Type:</span> ${fullJob.JobType || 'Manufacturing'}</div>
+            <div><span style="color:var(--tmu)">Created:</span> <span class="mono">${(fullJob.CreateDate||'').split('T')[0] || '—'}</span></div>
+            <div><span style="color:var(--tmu)">Created By:</span> ${fullJob.CreatedBy || '—'}</div>
+            <div><span style="color:var(--tmu)">Engineered:</span> ${fullJob.JobEngineered ? '✓ Yes' : '○ No'}</div>
+            <div><span style="color:var(--tmu)">Released:</span> ${fullJob.JobReleased ? '✓ Yes' : '○ No'}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tmu);margin-bottom:8px">Operations — Estimated vs Actual</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%"><thead><tr>
+            <th style="width:40px">Seq</th><th>Op Code</th><th>Resource</th><th>Est Hrs</th><th>Act Hrs</th><th>Est Cost</th><th>Act Cost</th><th>Status</th>
+          </tr></thead><tbody>${opsRows || '<tr><td colspan="8" style="text-align:center;color:var(--tmu)">No operations loaded</td></tr>'}</tbody>
+          <tfoot><tr style="font-weight:700;border-top:2px solid var(--bd)">
+            <td colspan="3" style="padding:8px 12px">Totals</td>
+            <td style="padding:8px 12px" class="mono">${totalEstHrs.toFixed(1)}h</td>
+            <td style="padding:8px 12px" class="mono">${totalActHrs > 0 ? totalActHrs.toFixed(1) + 'h' : '—'}</td>
+            <td style="padding:8px 12px" class="mono">$${totalEstCost.toFixed(0)}</td>
+            <td style="padding:8px 12px" class="mono">${totalActCost > 0 ? '$' + totalActCost.toFixed(0) : '—'}</td>
+            <td></td>
+          </tr></tfoot></table>
+        </div>
+      </div>
+
+      ${wfJob?.materials?.length > 0 ? `
+      <div style="margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tmu);margin-bottom:8px">Materials — Availability & Sourcing</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%"><thead><tr>
+            <th>Part</th><th>Description</th><th>Req Qty</th><th>Issued Qty</th><th>Source</th><th>Status</th><th>PO / Due</th>
+          </tr></thead><tbody>${wfJob.materials.map(m => {
+            const issued = m.IssuedComplete || false;
+            const issuedQty = m.IssuedQty || 0;
+            const reqQty = m.RequiredQty || m.QtyPer || 0;
+            const buyIt = m.BuyIt || false;
+            const poNum = m.PONum || 0;
+            const poLine = m.POLine || 0;
+            const dueDate = (m.ReqDate || m.RequiredDate || '').split('T')[0];
+            const warehouse = m.WarehouseCode || m.IssueWhse || '';
+
+            let statusLabel, statusColor;
+            if (issued) { statusLabel = '✓ Issued'; statusColor = 'var(--green)'; }
+            else if (buyIt && poNum > 0) { statusLabel = '⬇ On PO'; statusColor = 'var(--teal)'; }
+            else if (buyIt) { statusLabel = '! Needs PO'; statusColor = 'var(--red)'; }
+            else if (warehouse) { statusLabel = '→ Issue from stock'; statusColor = 'var(--orange)'; }
+            else { statusLabel = '○ Pending'; statusColor = 'var(--tmu)'; }
+
+            const source = buyIt ? 'Purchase' : 'Inventory' + (warehouse ? ' (' + warehouse + ')' : '');
+            const poInfo = poNum > 0 ? 'PO ' + poNum + '-' + poLine : '—';
+            const dueFmt = dueDate && dueDate !== '0001-01-01' ? dueDate : '—';
+
+            return '<tr>' +
+              '<td class="mono" style="font-size:11px;font-weight:600;color:var(--teal)">' + (m.PartNum||'') + '</td>' +
+              '<td style="font-size:11px">' + (m.Description || m.PartDescription || '') + '</td>' +
+              '<td class="mono">' + (reqQty || '') + '</td>' +
+              '<td class="mono">' + (issuedQty > 0 ? issuedQty : '—') + '</td>' +
+              '<td style="font-size:11px">' + source + '</td>' +
+              '<td style="font-weight:600;color:' + statusColor + ';font-size:11px">' + statusLabel + '</td>' +
+              '<td class="mono" style="font-size:11px">' + (poNum > 0 ? poInfo + '<br>' + dueFmt : dueFmt) + '</td>' +
+            '</tr>';
+          }).join('')}</tbody></table>
+        </div>
+      </div>
+      ` : ''}
+
+      <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+        <button class="btn btn-teal" onclick="closeJobDetail();quickAction('${jobNum}','priorityHigh')">⬆ Expedite</button>
+        <button class="btn btn-outline" onclick="closeJobDetail();quickAction('${jobNum}','scheduleForward')">▶ Schedule Forward</button>
+        <button class="btn btn-outline" onclick="closeJobDetail();quickAction('${jobNum}','hold')">⏸ Hold</button>
+        <button class="btn btn-outline" style="margin-left:auto;background:var(--teal);color:#fff;border-color:var(--teal)" onclick="openInJobEntry('${jobNum}')">↗ Open in Job Entry</button>
+      </div>
+    `;
+  } catch (err) {
+    content.innerHTML = `<div style="color:var(--red);padding:20px">Error loading job details: ${err.message}</div>`;
+  }
+}
+</script>
+</body>
+</html>
